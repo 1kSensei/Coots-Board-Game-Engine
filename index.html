@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coot's Board Game Engine</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0b08;
+  --bg2: #161310;
+  --bg3: #1e1a14;
+  --card: #221e17;
+  --border: #3a3020;
+  --gold: #c9a84c;
+  --gold2: #e8c96a;
+  --gold3: #f5e0a0;
+  --red: #8b2020;
+  --red2: #c0392b;
+  --green: #1a4a2e;
+  --green2: #27ae60;
+  --blue: #1a2a4a;
+  --blue2: #2980b9;
+  --text: #e8dcc8;
+  --text2: #a89878;
+  --text3: #6b5f4a;
+  --shadow: rgba(0,0,0,0.8);
+  --glow: rgba(201,168,76,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Pro',serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:
+  radial-gradient(ellipse at 20% 20%,rgba(201,168,76,0.04) 0%,transparent 50%),
+  radial-gradient(ellipse at 80% 80%,rgba(139,32,32,0.04) 0%,transparent 50%);pointer-events:none;z-index:0}
+
+/* LANDING */
+#landing{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);background-image:
+  repeating-linear-gradient(0deg,transparent,transparent 49px,rgba(58,48,32,0.3) 49px,rgba(58,48,32,0.3) 50px),
+  repeating-linear-gradient(90deg,transparent,transparent 49px,rgba(58,48,32,0.3) 49px,rgba(58,48,32,0.3) 50px)}
+.landing-logo{font-family:'Cinzel Decorative',serif;font-size:clamp(2rem,6vw,5rem);font-weight:900;color:var(--gold);text-shadow:0 0 60px var(--glow),0 0 120px rgba(201,168,76,0.15);letter-spacing:0.05em;text-align:center;line-height:1.1;animation:logoGlow 3s ease-in-out infinite alternate}
+.landing-sub{font-family:'Crimson Pro',serif;font-style:italic;color:var(--text2);font-size:1.3rem;margin:0.5rem 0 3rem;letter-spacing:0.2em}
+@keyframes logoGlow{from{text-shadow:0 0 40px var(--glow)}to{text-shadow:0 0 80px rgba(201,168,76,0.5),0 0 160px rgba(201,168,76,0.2)}}
+.landing-cards{display:flex;gap:2rem;flex-wrap:wrap;justify-content:center;margin-bottom:3rem}
+.landing-card{width:280px;background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2rem;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden}
+.landing-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,168,76,0.05),transparent);opacity:0;transition:opacity 0.3s}
+.landing-card:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 20px var(--glow)}
+.landing-card:hover::before{opacity:1}
+.landing-card-icon{font-size:3rem;margin-bottom:1rem;display:block}
+.landing-card h3{font-family:'Cinzel Decorative',serif;font-size:1.1rem;color:var(--gold);margin-bottom:0.5rem}
+.landing-card p{color:var(--text2);font-size:0.95rem;line-height:1.5}
+.landing-ornament{color:var(--text3);font-size:2rem;text-align:center;letter-spacing:1rem;margin-bottom:2rem}
+
+/* MAIN APP */
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0.75rem 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:100}
+.topbar-logo{font-family:'Cinzel Decorative',serif;font-size:1.1rem;color:var(--gold);flex:0 0 auto}
+.topbar-nav{display:flex;gap:0.5rem;flex:1}
+.tab-btn{background:none;border:1px solid transparent;color:var(--text2);padding:0.4rem 1rem;border-radius:3px;cursor:pointer;font-family:'Crimson Pro',serif;font-size:0.95rem;transition:all 0.2s;letter-spacing:0.05em}
+.tab-btn.active,.tab-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.08)}
+.topbar-right{display:flex;gap:0.5rem;align-items:center}
+
+/* PANELS */
+.panel{display:none;flex:1;padding:1.5rem;gap:1.5rem}
+.panel.active{display:flex}
+
+/* BROWSE PANEL */
+#browse-panel{flex-direction:column}
+.browse-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem}
+.section-title{font-family:'Cinzel Decorative',serif;font-size:1.5rem;color:var(--gold)}
+.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem}
+.game-card{background:var(--card);border:1px solid var(--border);border-radius:4px;padding:1.5rem;cursor:pointer;transition:all 0.3s;position:relative}
+.game-card:hover{border-color:var(--gold);box-shadow:0 8px 30px rgba(0,0,0,0.5),0 0 15px var(--glow);transform:translateY(-2px)}
+.game-card-title{font-family:'Cinzel Decorative',serif;font-size:1rem;color:var(--gold);margin-bottom:0.5rem}
+.game-card-meta{color:var(--text3);font-size:0.85rem;margin-bottom:1rem}
+.game-card-desc{color:var(--text2);font-size:0.9rem;line-height:1.5;margin-bottom:1rem}
+.game-card-tags{display:flex;gap:0.5rem;flex-wrap:wrap}
+.tag{background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.2);color:var(--gold);padding:0.15rem 0.5rem;border-radius:2px;font-size:0.75rem;font-family:'JetBrains Mono',monospace}
+.btn{padding:0.5rem 1.2rem;border-radius:3px;cursor:pointer;font-family:'Crimson Pro',serif;font-size:1rem;transition:all 0.2s;border:1px solid;letter-spacing:0.05em}
+.btn-gold{background:linear-gradient(135deg,#8b6914,#c9a84c);border-color:var(--gold2);color:#0d0b08;font-weight:600}
+.btn-gold:hover{background:linear-gradient(135deg,#c9a84c,#e8c96a);box-shadow:0 4px 15px var(--glow)}
+.btn-outline{background:transparent;border-color:var(--border);color:var(--text2)}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold)}
+.btn-danger{background:rgba(139,32,32,0.3);border-color:var(--red);color:#e88;}
+.btn-danger:hover{background:rgba(192,57,43,0.4)}
+.btn-sm{padding:0.3rem 0.8rem;font-size:0.85rem}
+input,textarea,select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:0.5rem 0.75rem;border-radius:3px;font-family:'Crimson Pro',serif;font-size:1rem;width:100%;transition:border-color 0.2s}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px var(--glow)}
+label{color:var(--text2);font-size:0.9rem;display:block;margin-bottom:0.3rem}
+.form-group{margin-bottom:1rem}
+
+/* CREATOR PANEL */
+#creator-panel{flex-direction:row;gap:0;padding:0;height:calc(100vh - 57px);overflow:hidden}
+.creator-sidebar{width:300px;min-width:300px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.creator-sidebar-tabs{display:flex;border-bottom:1px solid var(--border)}
+.sidebar-tab{flex:1;padding:0.6rem;background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.8rem;font-family:'JetBrains Mono',monospace;transition:all 0.2s;border-bottom:2px solid transparent}
+.sidebar-tab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(201,168,76,0.05)}
+.sidebar-content{flex:1;overflow-y:auto;padding:1rem}
+.sidebar-content::-webkit-scrollbar{width:4px}
+.sidebar-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.creator-canvas-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.creator-toolbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0.5rem 1rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap}
+.tool-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:0.3rem 0.7rem;border-radius:3px;cursor:pointer;font-size:0.8rem;transition:all 0.2s;font-family:'JetBrains Mono',monospace}
+.tool-btn.active,.tool-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.1)}
+.creator-board-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;background:
+  repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(58,48,32,0.15) 40px),
+  repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(58,48,32,0.15) 40px),
+  var(--bg)}
+#creator-board{position:relative;display:grid;border:2px solid var(--gold);box-shadow:0 0 30px var(--glow);background:var(--bg2)}
+.board-cell{border:1px solid rgba(58,48,32,0.5);cursor:pointer;transition:all 0.15s;position:relative;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:var(--text3);min-width:40px;min-height:40px}
+.board-cell:hover{border-color:var(--gold);z-index:2}
+.board-cell.selected{border-color:var(--gold2);box-shadow:inset 0 0 8px var(--glow);z-index:3}
+.board-cell-label{position:absolute;bottom:2px;right:3px;font-size:0.5rem;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,0.2);pointer-events:none}
+
+/* Color swatches */
+.color-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-bottom:0.5rem}
+.color-swatch{width:100%;aspect-ratio:1;border-radius:2px;cursor:pointer;border:2px solid transparent;transition:all 0.15s}
+.color-swatch.selected,.color-swatch:hover{border-color:white;transform:scale(1.1)}
+.custom-color-row{display:flex;gap:0.5rem;align-items:center}
+.custom-color-row input[type=color]{width:40px;height:32px;padding:2px;cursor:pointer;flex:0 0 auto}
+.custom-color-row input[type=text]{flex:1}
+
+/* Pieces */
+.piece-list{display:flex;flex-direction:column;gap:0.5rem}
+.piece-item{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:0.5rem;display:flex;align-items:center;gap:0.5rem;cursor:pointer;transition:all 0.2s}
+.piece-item:hover,.piece-item.selected{border-color:var(--gold)}
+.piece-icon-preview{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:var(--bg);border-radius:2px;border:1px solid var(--border);flex:0 0 auto;overflow:hidden}
+.piece-icon-preview img{width:100%;height:100%;object-fit:contain}
+
+/* Dice */
+.dice-list{display:flex;flex-direction:column;gap:0.5rem}
+.die-item{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:0.5rem;display:flex;align-items:center;gap:0.5rem}
+.die-badge{background:linear-gradient(135deg,#4a3010,#8b6914);color:var(--gold2);font-family:'Cinzel Decorative',serif;font-size:0.75rem;padding:0.2rem 0.5rem;border-radius:2px;flex:0 0 auto}
+
+/* GAMEPLAY PANEL */
+#play-panel{flex-direction:column;padding:0;height:calc(100vh - 57px);overflow:hidden}
+.play-layout{flex:1;display:flex;overflow:hidden}
+.play-sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.play-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.play-board-wrap{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;background:
+  repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(58,48,32,0.1) 40px),
+  repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(58,48,32,0.1) 40px),
+  var(--bg);position:relative}
+#play-board{position:relative;display:grid;border:2px solid var(--gold);box-shadow:0 0 40px var(--glow)}
+.play-cell{border:1px solid rgba(58,48,32,0.4);position:relative;display:flex;align-items:center;justify-content:center;overflow:visible}
+.play-piece{position:absolute;width:80%;height:80%;display:flex;align-items:center;justify-content:center;cursor:grab;border-radius:50%;border:2px solid transparent;transition:border-color 0.2s,box-shadow 0.2s;z-index:10;user-select:none;font-size:1.2rem;overflow:hidden}
+.play-piece img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.play-piece:hover{border-color:var(--gold2);box-shadow:0 0 12px var(--glow);z-index:20}
+.play-piece.dragging{opacity:0.7;cursor:grabbing;z-index:1000;transform:scale(1.1)}
+.play-piece.my-piece{border-color:var(--gold)}
+
+/* Dice tray */
+.dice-tray{background:var(--bg2);border-top:1px solid var(--border);padding:0.75rem 1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;min-height:70px}
+.dice-tray-label{color:var(--text3);font-size:0.8rem;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.die-throw{width:50px;height:50px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;border-radius:6px;font-family:'Cinzel Decorative',serif;font-size:0.9rem;user-select:none;transition:all 0.2s;flex:0 0 auto}
+.die-d4{background:linear-gradient(135deg,#2a1a40,#4a2a70);border:2px solid #7a4aaa;color:#c9a0ff;clip-path:polygon(50% 0%,100% 100%,0% 100%)}
+.die-d6{background:linear-gradient(135deg,#1a2a40,#2a4a70);border:2px solid #4a7aaa;color:#a0c9ff;border-radius:8px}
+.die-d8{background:linear-gradient(135deg,#401a1a,#702a2a);border:2px solid #aa4a4a;color:#ffa0a0;clip-path:polygon(50% 0%,100% 40%,80% 100%,20% 100%,0% 40%)}
+.die-d10{background:linear-gradient(135deg,#1a402a,#2a7040);border:2px solid #4aaa6a;color:#a0ffca;clip-path:polygon(50% 0%,100% 30%,85% 100%,15% 100%,0% 30%)}
+.die-d12{background:linear-gradient(135deg,#40301a,#70501a);border:2px solid #aa8a4a;color:#ffd4a0;clip-path:polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%)}
+.die-d20{background:linear-gradient(135deg,#401a30,#701a50);border:2px solid #aa4a80;color:#ffb0d8;clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%)}
+.die-custom{background:linear-gradient(135deg,#403a1a,#706a2a);border:2px solid #aaa04a;color:#fff0a0;border-radius:4px}
+.die-throw:hover{transform:scale(1.1) rotate(-5deg);box-shadow:0 4px 15px rgba(0,0,0,0.5)}
+.die-throw:active{transform:scale(0.95) rotate(5deg)}
+@keyframes dieRoll{
+  0%{transform:rotate(0deg) scale(1)}
+  25%{transform:rotate(180deg) scale(1.3)}
+  50%{transform:rotate(360deg) scale(0.9)}
+  75%{transform:rotate(540deg) scale(1.2)}
+  100%{transform:rotate(720deg) scale(1)}
+}
+.die-throw.rolling{animation:dieRoll 0.6s ease-out}
+.die-result{position:absolute;top:-8px;right:-8px;background:var(--gold);color:#0d0b08;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:bold;font-family:'JetBrains Mono',monospace;box-shadow:0 2px 8px rgba(0,0,0,0.5)}
+
+/* Player list */
+.player-list{padding:1rem;flex:1;overflow-y:auto}
+.player-list-title{font-family:'Cinzel Decorative',serif;font-size:0.8rem;color:var(--gold);margin-bottom:0.75rem;letter-spacing:0.1em}
+.player-item{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:0.5rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:0.5rem;transition:border-color 0.2s}
+.player-item.active-turn{border-color:var(--gold);background:rgba(201,168,76,0.08)}
+.player-dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+.player-name-text{font-size:0.85rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-piece-badge{font-size:0.7rem;color:var(--text3)}
+.turn-indicator{padding:0.5rem 1rem;border-top:1px solid var(--border);font-size:0.85rem;color:var(--text2);text-align:center}
+.current-turn-name{color:var(--gold);font-weight:600}
+
+/* Game info panel */
+.game-info-sidebar{background:var(--bg2);border-right:1px solid var(--border);width:220px;min-width:220px;display:flex;flex-direction:column;overflow:hidden}
+.instructions-box{padding:1rem;flex:1;overflow-y:auto}
+.instructions-box h4{font-family:'Cinzel Decorative',serif;font-size:0.75rem;color:var(--gold);margin-bottom:0.5rem}
+.instructions-text{color:var(--text2);font-size:0.85rem;line-height:1.6;white-space:pre-wrap}
+
+/* Lobby */
+#lobby-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.lobby-box{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:2rem;width:500px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,0.8)}
+.lobby-title{font-family:'Cinzel Decorative',serif;font-size:1.3rem;color:var(--gold);margin-bottom:1.5rem;text-align:center}
+.lobby-game-name{color:var(--text2);text-align:center;margin-bottom:1.5rem;font-style:italic}
+.room-code-display{background:var(--bg);border:1px solid var(--gold);border-radius:3px;padding:1rem;text-align:center;font-family:'JetBrains Mono',monospace;font-size:1.8rem;color:var(--gold2);letter-spacing:0.3em;margin-bottom:1rem;cursor:pointer;transition:all 0.2s}
+.room-code-display:hover{background:rgba(201,168,76,0.1)}
+.lobby-players{margin:1rem 0}
+.lobby-player{display:flex;align-items:center;gap:0.75rem;padding:0.5rem;background:var(--bg3);border-radius:3px;margin-bottom:0.5rem}
+.lobby-controls{display:flex;gap:0.5rem;margin-top:1rem;flex-wrap:wrap}
+.piece-assign-row{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem}
+.piece-pick{width:36px;height:36px;background:var(--bg);border:2px solid var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.2rem;transition:all 0.2s;overflow:hidden;flex:0 0 auto}
+.piece-pick img{width:100%;height:100%;object-fit:contain}
+.piece-pick.chosen{border-color:var(--gold);background:rgba(201,168,76,0.1)}
+.piece-pick:hover{border-color:var(--gold2)}
+
+/* Order system */
+.order-methods{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem}
+.order-btn{padding:0.3rem 0.7rem;border-radius:3px;cursor:pointer;font-size:0.8rem;border:1px solid var(--border);background:var(--bg3);color:var(--text2);transition:all 0.2s}
+.order-btn.selected{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,0.1)}
+
+/* Chat/Log */
+.game-log{padding:0.5rem 1rem;max-height:120px;overflow-y:auto;border-top:1px solid var(--border);background:var(--bg2)}
+.log-entry{font-size:0.8rem;color:var(--text2);padding:0.15rem 0;font-family:'JetBrains Mono',monospace;line-height:1.4}
+.log-entry.log-roll{color:#c9a0ff}
+.log-entry.log-move{color:#a0c9ff}
+.log-entry.log-system{color:var(--gold)}
+.log-entry.log-chat{color:var(--text)}
+
+/* Items */
+.item-chip{background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);border-radius:3px;padding:0.15rem 0.5rem;font-size:0.75rem;font-family:'JetBrains Mono',monospace;display:inline-flex;align-items:center;gap:0.3rem}
+.piece-items-popup{position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:4px;padding:0.75rem;z-index:100;min-width:160px;box-shadow:0 8px 30px rgba(0,0,0,0.7);display:none}
+.play-piece:hover .piece-items-popup{display:block}
+
+/* Notification toast */
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--card);border:1px solid var(--gold);border-radius:4px;padding:0.75rem 1.25rem;color:var(--text);font-size:0.9rem;z-index:9999;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error{border-color:var(--red2);color:#ffa0a0}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:800;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(3px);display:none}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:1.5rem;width:480px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.8)}
+.modal-title{font-family:'Cinzel Decorative',serif;color:var(--gold);margin-bottom:1rem;font-size:1.1rem}
+.modal-footer{display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* Responsive */
+@media(max-width:768px){
+  .creator-sidebar,.play-sidebar,.game-info-sidebar{width:200px;min-width:200px}
+  .landing-cards{flex-direction:column;align-items:center}
+  .lobby-box{padding:1.25rem}
+}
+
+/* Section headers in sidebar */
+.section-header{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--text3);letter-spacing:0.15em;text-transform:uppercase;margin:1rem 0 0.5rem;border-bottom:1px solid var(--border);padding-bottom:0.3rem}
+.section-header:first-child{margin-top:0}
+
+/* Toggle */
+.toggle-row{display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem}
+.toggle{width:36px;height:20px;background:var(--bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;position:relative;transition:background 0.2s;flex:0 0 auto}
+.toggle::after{content:'';position:absolute;width:14px;height:14px;background:var(--text3);border-radius:50%;top:2px;left:2px;transition:all 0.2s}
+.toggle.on{background:rgba(201,168,76,0.3);border-color:var(--gold)}
+.toggle.on::after{left:18px;background:var(--gold)}
+.toggle-label{font-size:0.9rem;color:var(--text2)}
+
+/* Number input */
+.num-input-row{display:flex;align-items:center;gap:0.5rem}
+.num-btn{width:28px;height:28px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:3px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex:0 0 auto}
+.num-btn:hover{border-color:var(--gold);color:var(--gold)}
+.num-display{font-family:'JetBrains Mono',monospace;font-size:1rem;color:var(--text);min-width:30px;text-align:center}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border);border-radius:4px;padding:1.5rem;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text3);font-size:0.85rem}
+.upload-zone:hover{border-color:var(--gold);color:var(--text2)}
+.upload-zone input{display:none}
+
+/* Chat input */
+.chat-input-row{display:flex;gap:0.5rem;padding:0.5rem 1rem;border-top:1px solid var(--border)}
+.chat-input-row input{flex:1}
+.chat-input-row button{padding:0.4rem 0.8rem;white-space:nowrap}
+
+/* Highlight */
+mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;padding:0.05em 0.2em}
+</style>
+</head>
+<body>
+
+<!-- LANDING -->
+<div id="landing">
+  <div class="landing-logo">Coot's Board<br>Game Engine</div>
+  <div class="landing-sub">craft · host · conquer</div>
+  <div class="landing-ornament">⚔ ✦ ⚔</div>
+  <div class="landing-cards">
+    <div class="landing-card" onclick="showApp('browse')">
+      <span class="landing-card-icon">🎲</span>
+      <h3>Browse Games</h3>
+      <p>Explore board games created by other players. Find something to play with your friends.</p>
+    </div>
+    <div class="landing-card" onclick="showApp('creator')">
+      <span class="landing-card-icon">🛠</span>
+      <h3>Create a Game</h3>
+      <p>Build your own board game from scratch. Design the board, pieces, dice, and rules.</p>
+    </div>
+    <div class="landing-card" onclick="promptJoinGame()">
+      <span class="landing-card-icon">🌐</span>
+      <h3>Join a Game</h3>
+      <p>Have a room code? Jump directly into an online game with your friends.</p>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">⚔ Coot's BGE</div>
+    <div class="topbar-nav">
+      <button class="tab-btn" onclick="switchTab('browse')">Browse</button>
+      <button class="tab-btn" onclick="switchTab('creator')">Creator</button>
+      <button class="tab-btn" id="play-tab-btn" onclick="switchTab('play')" style="display:none">▶ Playing</button>
+    </div>
+    <div class="topbar-right">
+      <span id="conn-status" style="font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--text3)">⬤ offline</span>
+    </div>
+  </div>
+
+  <!-- BROWSE PANEL -->
+  <div class="panel" id="browse-panel">
+    <div class="browse-header">
+      <div class="section-title">Game Library</div>
+      <div style="display:flex;gap:0.5rem">
+        <input id="search-input" placeholder="Search games…" style="width:200px" oninput="renderBrowse()">
+        <button class="btn btn-gold" onclick="switchTab('creator')">+ Create Game</button>
+      </div>
+    </div>
+    <div class="game-grid" id="game-grid"></div>
+  </div>
+
+  <!-- CREATOR PANEL -->
+  <div class="panel" id="creator-panel">
+    <!-- Sidebar -->
+    <div class="creator-sidebar">
+      <div class="creator-sidebar-tabs">
+        <button class="sidebar-tab active" onclick="showSidebarTab('board-tab',this)">Board</button>
+        <button class="sidebar-tab" onclick="showSidebarTab('pieces-tab',this)">Pieces</button>
+        <button class="sidebar-tab" onclick="showSidebarTab('dice-tab',this)">Dice</button>
+        <button class="sidebar-tab" onclick="showSidebarTab('rules-tab',this)">Rules</button>
+      </div>
+      <div class="sidebar-content">
+
+        <!-- BOARD TAB -->
+        <div id="board-tab">
+          <div class="section-header">Board Info</div>
+          <div class="form-group">
+            <label>Game Name</label>
+            <input id="game-name" placeholder="My Awesome Game" oninput="updateCreatorState()">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="game-desc" rows="2" placeholder="A short description…" oninput="updateCreatorState()"></textarea>
+          </div>
+          <div class="section-header">Board Size</div>
+          <div class="form-group">
+            <label>Columns</label>
+            <div class="num-input-row">
+              <button class="num-btn" onclick="changeBoardSize('cols',-1)">−</button>
+              <span class="num-display" id="cols-display">8</span>
+              <button class="num-btn" onclick="changeBoardSize('cols',1)">+</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Rows</label>
+            <div class="num-input-row">
+              <button class="num-btn" onclick="changeBoardSize('rows',-1)">−</button>
+              <span class="num-display" id="rows-display">8</span>
+              <button class="num-btn" onclick="changeBoardSize('rows',1)">+</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Cell Size (px)</label>
+            <div class="num-input-row">
+              <button class="num-btn" onclick="changeCellSize(-5)">−</button>
+              <span class="num-display" id="cell-size-display">60</span>
+              <button class="num-btn" onclick="changeCellSize(5)">+</button>
+            </div>
+          </div>
+          <div class="section-header">Tile Paint</div>
+          <div style="margin-bottom:0.5rem;font-size:0.85rem;color:var(--text2)">Select a color then click tiles to paint</div>
+          <div class="color-grid" id="color-palette"></div>
+          <div class="custom-color-row">
+            <input type="color" id="custom-color-picker" value="#c9a84c" onchange="setCustomColor(this.value)">
+            <input type="text" id="custom-color-text" value="#c9a84c" placeholder="#hex" oninput="setCustomColor(this.value)">
+          </div>
+          <div style="margin-top:0.5rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="fillAll()">Fill All</button>
+            <button class="btn btn-outline btn-sm" onclick="clearColors()">Clear Colors</button>
+            <button class="btn btn-outline btn-sm" onclick="setCheckerboard()">Checkerboard</button>
+          </div>
+        </div>
+
+        <!-- PIECES TAB -->
+        <div id="pieces-tab" style="display:none">
+          <div class="section-header">Game Pieces</div>
+          <div class="piece-list" id="piece-list"></div>
+          <button class="btn btn-outline btn-sm" style="width:100%;margin-top:0.5rem" onclick="openAddPieceModal()">+ Add Piece</button>
+          <div class="section-header">Turn Order</div>
+          <div style="margin-bottom:0.5rem;font-size:0.85rem;color:var(--text2)">How is turn order decided?</div>
+          <div class="order-methods">
+            <button class="order-btn selected" onclick="setOrderMethod('dice',this)">🎲 Roll Dice</button>
+            <button class="order-btn" onclick="setOrderMethod('manual',this)">✍ Manual</button>
+            <button class="order-btn" onclick="setOrderMethod('random',this)">🔀 Random</button>
+            <button class="order-btn" onclick="setOrderMethod('oldest',this)">👴 Host First</button>
+          </div>
+        </div>
+
+        <!-- DICE TAB -->
+        <div id="dice-tab" style="display:none">
+          <div class="section-header">Dice in Game</div>
+          <div class="dice-list" id="dice-list"></div>
+          <div style="margin-top:0.75rem">
+            <label>Add Die Type</label>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.3rem">
+              <button class="tool-btn" onclick="addDie(4)">D4</button>
+              <button class="tool-btn" onclick="addDie(6)">D6</button>
+              <button class="tool-btn" onclick="addDie(8)">D8</button>
+              <button class="tool-btn" onclick="addDie(10)">D10</button>
+              <button class="tool-btn" onclick="addDie(12)">D12</button>
+              <button class="tool-btn" onclick="addDie(20)">D20</button>
+            </div>
+            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;align-items:center">
+              <input id="custom-die-sides" type="number" min="2" max="100" placeholder="Custom sides" style="flex:1">
+              <button class="tool-btn" onclick="addCustomDie()">Add</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RULES TAB -->
+        <div id="rules-tab" style="display:none">
+          <div class="section-header">Game Instructions</div>
+          <div class="form-group">
+            <label>Instructions & Rules</label>
+            <textarea id="game-instructions" rows="8" placeholder="Write your game rules here…&#10;&#10;1. Players take turns rolling…&#10;2. Move your piece…" oninput="updateCreatorState()" style="min-height:150px"></textarea>
+          </div>
+          <div class="section-header">Additional Info</div>
+          <div class="form-group">
+            <label>Min Players</label>
+            <input id="min-players" type="number" min="1" max="20" value="2" oninput="updateCreatorState()">
+          </div>
+          <div class="form-group">
+            <label>Max Players</label>
+            <input id="max-players" type="number" min="1" max="20" value="4" oninput="updateCreatorState()">
+          </div>
+          <div class="form-group">
+            <label>Estimated Play Time</label>
+            <input id="play-time" placeholder="e.g. 30–60 minutes" oninput="updateCreatorState()">
+          </div>
+          <div class="form-group">
+            <label>Tags (comma separated)</label>
+            <input id="game-tags" placeholder="strategy, family, dice" oninput="updateCreatorState()">
+          </div>
+          <div class="section-header">Custom Items</div>
+          <div style="font-size:0.85rem;color:var(--text2);margin-bottom:0.5rem">Items players can collect and attach to pieces</div>
+          <div id="items-list"></div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+            <input id="new-item-name" placeholder="Item name…" style="flex:1">
+            <button class="tool-btn" onclick="addItem()">+</button>
+          </div>
+          <div class="section-header">Save Game</div>
+          <button class="btn btn-gold" style="width:100%" onclick="saveGame()">💾 Save Game</button>
+        </div>
+
+      </div><!-- /sidebar-content -->
+    </div><!-- /creator-sidebar -->
+
+    <!-- Canvas Area -->
+    <div class="creator-canvas-area">
+      <div class="creator-toolbar">
+        <span style="color:var(--text3);font-size:0.75rem;font-family:'JetBrains Mono',monospace">TOOL:</span>
+        <button class="tool-btn active" id="tool-paint" onclick="setTool('paint',this)">🖌 Paint</button>
+        <button class="tool-btn" id="tool-erase" onclick="setTool('erase',this)">⬜ Erase</button>
+        <button class="tool-btn" id="tool-label" onclick="setTool('label',this)">🏷 Label</button>
+        <div style="flex:1"></div>
+        <span id="creator-selected-info" style="color:var(--text3);font-size:0.75rem;font-family:'JetBrains Mono',monospace">Click a tile to paint</span>
+        <button class="btn btn-gold btn-sm" onclick="testGame()">▶ Test Game</button>
+      </div>
+      <div class="creator-board-wrap">
+        <div id="creator-board"></div>
+      </div>
+    </div>
+  </div><!-- /creator-panel -->
+
+  <!-- PLAY PANEL -->
+  <div class="panel" id="play-panel">
+    <div class="play-layout">
+      <!-- Left: info/instructions -->
+      <div class="game-info-sidebar">
+        <div class="instructions-box">
+          <h4>📖 Instructions</h4>
+          <div class="instructions-text" id="play-instructions">Loading…</div>
+          <div style="margin-top:1rem">
+            <h4 style="margin-bottom:0.5rem">🎒 Items</h4>
+            <div id="play-items-list" style="font-size:0.85rem;color:var(--text2)">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle: board -->
+      <div class="play-main">
+        <div class="play-board-wrap">
+          <div id="play-board"></div>
+        </div>
+        <!-- Dice tray -->
+        <div class="dice-tray">
+          <span class="dice-tray-label">🎲 DICE TRAY</span>
+          <div id="dice-tray-dice" style="display:flex;gap:0.5rem;flex-wrap:wrap"></div>
+          <div style="flex:1"></div>
+          <div id="last-roll-display" style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--text2)"></div>
+          <button class="btn btn-outline btn-sm" onclick="endTurn()">End Turn →</button>
+        </div>
+        <!-- Game log / chat -->
+        <div class="game-log" id="game-log"></div>
+        <div class="chat-input-row">
+          <input id="chat-input" placeholder="Say something…" onkeydown="if(event.key==='Enter')sendChat()">
+          <button class="btn btn-outline btn-sm" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+
+      <!-- Right: player list -->
+      <div class="play-sidebar">
+        <div class="player-list">
+          <div class="player-list-title">⚔ PLAYERS</div>
+          <div id="player-list-items"></div>
+        </div>
+        <div class="turn-indicator">
+          Turn: <span class="current-turn-name" id="current-turn-display">—</span>
+        </div>
+        <div style="padding:0.5rem;display:flex;flex-direction:column;gap:0.3rem">
+          <button class="btn btn-outline btn-sm" style="width:100%" onclick="showRoomCode()">📋 Room Code</button>
+          <button class="btn btn-danger btn-sm" style="width:100%" onclick="leaveGame()">Leave Game</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- LOBBY OVERLAY -->
+<div id="lobby-overlay" style="display:none">
+  <div class="lobby-box">
+    <div class="lobby-title">🎲 Game Lobby</div>
+    <div class="lobby-game-name" id="lobby-game-name">—</div>
+    <div id="lobby-host-section" style="display:none">
+      <div style="font-size:0.85rem;color:var(--text2);text-align:center;margin-bottom:0.5rem">Share this room code with friends:</div>
+      <div class="room-code-display" id="room-code-display" onclick="copyRoomCode()" title="Click to copy">—</div>
+      <div style="font-size:0.75rem;color:var(--text3);text-align:center;margin-bottom:1rem">Click to copy • Peers connect directly — no server needed</div>
+    </div>
+    <div id="lobby-join-section" style="display:none">
+      <div style="font-size:0.85rem;color:var(--text2);margin-bottom:0.5rem">Enter your name:</div>
+      <input id="join-name-input" placeholder="Your name" style="margin-bottom:0.5rem">
+      <div style="font-size:0.85rem;color:var(--text2);margin-bottom:0.5rem">Room code:</div>
+      <input id="join-code-input" placeholder="XXXX" style="margin-bottom:1rem;font-family:'JetBrains Mono',monospace;font-size:1.5rem;text-align:center;letter-spacing:0.3em">
+    </div>
+    <div style="font-size:0.9rem;color:var(--text2);margin-bottom:0.5rem">Players in lobby:</div>
+    <div id="lobby-player-list"></div>
+    <div id="lobby-piece-assign" style="margin-top:0.75rem">
+      <div style="font-size:0.85rem;color:var(--text2);margin-bottom:0.3rem">Choose your piece:</div>
+      <div class="piece-assign-row" id="piece-assign-row"></div>
+    </div>
+    <div class="lobby-controls" id="lobby-controls"></div>
+    <div id="lobby-status" style="font-size:0.8rem;color:var(--text3);margin-top:0.5rem;text-align:center"></div>
+  </div>
+</div>
+
+<!-- ADD PIECE MODAL -->
+<div class="modal-overlay" id="piece-modal">
+  <div class="modal-box">
+    <div class="modal-title">Add Game Piece</div>
+    <div class="form-group">
+      <label>Piece Name</label>
+      <input id="piece-name-input" placeholder="e.g. Red Knight">
+    </div>
+    <div class="form-group">
+      <label>Icon (upload image or choose emoji)</label>
+      <div class="upload-zone" onclick="document.getElementById('piece-icon-upload').click()">
+        <input type="file" id="piece-icon-upload" accept="image/*" onchange="handlePieceIconUpload(event)">
+        <div id="upload-preview" style="margin-bottom:0.5rem">
+          <span style="font-size:2rem" id="upload-emoji-preview">🎭</span>
+        </div>
+        <div>Click to upload image</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Or choose emoji</label>
+      <div style="display:flex;flex-wrap:wrap;gap:0.3rem">
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('♟')">♟</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🔴')">🔴</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🔵')">🔵</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🟢')">🟢</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🟡')">🟡</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('⭐')">⭐</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('💎')">💎</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🏰')">🏰</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🐉')">🐉</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🗡')">🗡</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🧙')">🧙</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🦁')">🦁</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🐻')">🐻</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🚀')">🚀</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('👑')">👑</span>
+        <span style="font-size:1.5rem;cursor:pointer;padding:0.2rem" onclick="selectEmoji('🎪')">🎪</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Starting Position (col, row — 0-indexed)</label>
+      <div style="display:flex;gap:0.5rem">
+        <input id="piece-start-col" type="number" min="0" placeholder="Col" style="flex:1">
+        <input id="piece-start-row" type="number" min="0" placeholder="Row" style="flex:1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Piece Color (border)</label>
+      <input type="color" id="piece-color-input" value="#c9a84c" style="width:100%;height:40px">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closePieceModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="savePiece()">Add Piece</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const PALETTE_COLORS = [
+  '#1a1a2e','#16213e','#0f3460','#1a4a2e','#2d4a1e','#4a2a0e',
+  '#3d1a1a','#3d2a3d','#2a3d3d','#0d0b08','#3a3020','#4a4030',
+  '#c9a84c','#e8c96a','#f5e0a0','#c0392b','#27ae60','#2980b9',
+  '#8e44ad','#e67e22','#1abc9c','#f39c12','#ecf0f1','#7f8c8d',
+  '#2c3e50','#34495e','#95a5a6','#bdc3c7','#ffffff','#000000',
+  '#6a0572','#ff6b6b','#4ecdc4','#45b7d1','#96ceb4','#ffeaa7',
+  '#dfe6e9','#636e72','#b2bec3','#74b9ff','#a29bfe','#fd79a8'
+];
+
+let creatorState = {
+  name: '',
+  desc: '',
+  rows: 8,
+  cols: 8,
+  cellSize: 60,
+  cells: {}, // key: "r,c" -> {color, label}
+  pieces: [],
+  dice: [{sides:6,count:1},{sides:20,count:1}],
+  items: [],
+  instructions: '',
+  minPlayers: 2,
+  maxPlayers: 4,
+  playTime: '',
+  tags: '',
+  orderMethod: 'dice'
+};
+
+let selectedColor = '#3a3020';
+let currentTool = 'paint';
+let editingPieceIndex = -1;
+let newPieceIcon = {type:'emoji',value:'♟'};
+let newPieceIconData = null;
+
+// ---- MULTIPLAYER ----
+let peer = null;
+let myPeerId = null;
+let myName = '';
+let myPieceId = null;
+let connections = []; // host stores all connections
+let hostConn = null;  // joiner's connection to host
+let isHost = false;
+let currentGame = null;
+let gameState = {
+  players: [],
+  pieces: [],
+  currentTurnIndex: 0,
+  log: []
+};
+let myPlayerId = null;
+
+// ============================================================
+// LANDING & NAV
+// ============================================================
+function showApp(tab) {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.flexDirection = 'column';
+  switchTab(tab);
+  if (tab === 'creator') initCreatorBoard();
+  renderBrowse();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(tab+'-panel').classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    if(b.textContent.toLowerCase().includes(tab)||b.getAttribute('onclick')?.includes("'"+tab+"'")) b.classList.add('active');
+  });
+}
+
+function promptJoinGame() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('app').style.flexDirection = 'column';
+  switchTab('browse');
+  renderBrowse();
+  showJoinDialog();
+}
+
+// ============================================================
+// CREATOR BOARD
+// ============================================================
+function initCreatorBoard() {
+  buildColorPalette();
+  renderCreatorBoard();
+  renderPieceList();
+  renderDiceList();
+  renderItemsList();
+  // Load from state
+  document.getElementById('game-name').value = creatorState.name;
+  document.getElementById('game-desc').value = creatorState.desc;
+  document.getElementById('game-instructions').value = creatorState.instructions;
+  document.getElementById('min-players').value = creatorState.minPlayers;
+  document.getElementById('max-players').value = creatorState.maxPlayers;
+  document.getElementById('play-time').value = creatorState.playTime;
+  document.getElementById('game-tags').value = creatorState.tags;
+}
+
+function buildColorPalette() {
+  const el = document.getElementById('color-palette');
+  el.innerHTML = '';
+  PALETTE_COLORS.forEach(c=>{
+    const s = document.createElement('div');
+    s.className = 'color-swatch';
+    s.style.background = c;
+    if(c===selectedColor) s.classList.add('selected');
+    s.onclick = ()=>{
+      selectedColor = c;
+      document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('selected'));
+      s.classList.add('selected');
+      document.getElementById('custom-color-picker').value = c;
+      document.getElementById('custom-color-text').value = c;
+    };
+    el.appendChild(s);
+  });
+}
+
+function setCustomColor(v) {
+  if(/^#[0-9a-fA-F]{6}$/.test(v)) {
+    selectedColor = v;
+    document.getElementById('custom-color-picker').value = v;
+    document.getElementById('custom-color-text').value = v;
+    document.querySelectorAll('.color-swatch').forEach(x=>x.classList.remove('selected'));
+  }
+}
+
+function renderCreatorBoard() {
+  const board = document.getElementById('creator-board');
+  const {rows,cols,cellSize,cells,pieces} = creatorState;
+  board.style.gridTemplateColumns = `repeat(${cols},${cellSize}px)`;
+  board.style.gridTemplateRows = `repeat(${rows},${cellSize}px)`;
+  board.innerHTML = '';
+  for(let r=0;r<rows;r++) {
+    for(let c=0;c<cols;c++) {
+      const key = `${r},${c}`;
+      const cellData = cells[key]||{};
+      const cell = document.createElement('div');
+      cell.className = 'board-cell';
+      cell.dataset.r = r;
+      cell.dataset.c = c;
+      if(cellData.color) cell.style.background = cellData.color;
+      if(cellData.label) {
+        const lbl = document.createElement('span');
+        lbl.style.cssText='position:absolute;font-size:0.6rem;color:rgba(255,255,255,0.7);pointer-events:none;text-align:center;padding:2px;';
+        lbl.textContent = cellData.label;
+        cell.appendChild(lbl);
+      }
+      // Show pieces on board
+      pieces.forEach(p=>{
+        if(p.startRow===r&&p.startCol===c) {
+          const pm = document.createElement('div');
+          pm.style.cssText=`position:absolute;width:70%;height:70%;display:flex;align-items:center;justify-content:center;border-radius:50%;border:2px solid ${p.color||'#c9a84c'};background:rgba(0,0,0,0.4);font-size:${cellSize*0.35}px;overflow:hidden;`;
+          if(p.iconData) {
+            const img = document.createElement('img');
+            img.src=p.iconData;img.style.cssText='width:100%;height:100%;object-fit:contain;';
+            pm.appendChild(img);
+          } else {
+            pm.textContent = p.icon||'♟';
+          }
+          cell.appendChild(pm);
+        }
+      });
+      const lbl = document.createElement('div');
+      lbl.className='board-cell-label';
+      lbl.textContent=`${c},${r}`;
+      cell.appendChild(lbl);
+      // Events
+      let painting = false;
+      cell.addEventListener('mousedown',e=>{
+        painting=true;
+        handleCellClick(cell,r,c);
+        e.preventDefault();
+      });
+      cell.addEventListener('mouseover',()=>{if(painting||mouseDown)handleCellClick(cell,r,c);});
+      board.appendChild(cell);
+    }
+  }
+  document.getElementById('cols-display').textContent = cols;
+  document.getElementById('rows-display').textContent = rows;
+  document.getElementById('cell-size-display').textContent = cellSize;
+}
+
+let mouseDown = false;
+document.addEventListener('mousedown',()=>mouseDown=true);
+document.addEventListener('mouseup',()=>mouseDown=false);
+
+function handleCellClick(cell,r,c) {
+  const key=`${r},${c}`;
+  if(currentTool==='paint') {
+    if(!creatorState.cells[key]) creatorState.cells[key]={};
+    creatorState.cells[key].color = selectedColor;
+    cell.style.background = selectedColor;
+  } else if(currentTool==='erase') {
+    if(creatorState.cells[key]) delete creatorState.cells[key].color;
+    cell.style.background='';
+  } else if(currentTool==='label') {
+    const lbl = prompt('Enter label for this tile (leave empty to clear):', creatorState.cells[key]?.label||'');
+    if(lbl!==null){
+      if(!creatorState.cells[key]) creatorState.cells[key]={};
+      creatorState.cells[key].label = lbl;
+      renderCreatorBoard();
+    }
+  }
+}
+
+function setTool(t,btn) {
+  currentTool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function changeBoardSize(dim,delta) {
+  if(dim==='cols') creatorState.cols = Math.max(2,Math.min(30,creatorState.cols+delta));
+  else creatorState.rows = Math.max(2,Math.min(30,creatorState.rows+delta));
+  renderCreatorBoard();
+}
+
+function changeCellSize(delta) {
+  creatorState.cellSize = Math.max(30,Math.min(120,creatorState.cellSize+delta));
+  renderCreatorBoard();
+}
+
+function fillAll() {
+  for(let r=0;r<creatorState.rows;r++)
+    for(let c=0;c<creatorState.cols;c++) {
+      const key=`${r},${c}`;
+      if(!creatorState.cells[key]) creatorState.cells[key]={};
+      creatorState.cells[key].color=selectedColor;
+    }
+  renderCreatorBoard();
+}
+
+function clearColors() {
+  Object.keys(creatorState.cells).forEach(k=>{if(creatorState.cells[k])delete creatorState.cells[k].color;});
+  renderCreatorBoard();
+}
+
+function setCheckerboard() {
+  const c1=selectedColor;
+  const c2='#1e1a14';
+  for(let r=0;r<creatorState.rows;r++)
+    for(let c=0;c<creatorState.cols;c++) {
+      const key=`${r},${c}`;
+      if(!creatorState.cells[key]) creatorState.cells[key]={};
+      creatorState.cells[key].color=(r+c)%2===0?c1:c2;
+    }
+  renderCreatorBoard();
+}
+
+function showSidebarTab(id,btn) {
+  document.querySelectorAll('.creator-sidebar .sidebar-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#board-tab,#pieces-tab,#dice-tab,#rules-tab').forEach(t=>t.style.display='none');
+  document.getElementById(id).style.display='block';
+}
+
+function updateCreatorState() {
+  creatorState.name = document.getElementById('game-name').value;
+  creatorState.desc = document.getElementById('game-desc').value;
+  creatorState.instructions = document.getElementById('game-instructions').value;
+  creatorState.minPlayers = parseInt(document.getElementById('min-players').value)||2;
+  creatorState.maxPlayers = parseInt(document.getElementById('max-players').value)||4;
+  creatorState.playTime = document.getElementById('play-time').value;
+  creatorState.tags = document.getElementById('game-tags').value;
+}
+
+// ============================================================
+// PIECES
+// ============================================================
+function openAddPieceModal() {
+  editingPieceIndex = -1;
+  newPieceIcon = {type:'emoji',value:'♟'};
+  newPieceIconData = null;
+  document.getElementById('piece-name-input').value = '';
+  document.getElementById('piece-start-col').value = '0';
+  document.getElementById('piece-start-row').value = '0';
+  document.getElementById('piece-color-input').value = '#c9a84c';
+  document.getElementById('upload-emoji-preview').textContent = '♟';
+  document.getElementById('upload-emoji-preview').innerHTML = '♟';
+  document.getElementById('piece-modal').classList.add('open');
+}
+
+function closePieceModal() {
+  document.getElementById('piece-modal').classList.remove('open');
+}
+
+function handlePieceIconUpload(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    newPieceIconData = ev.target.result;
+    newPieceIcon = {type:'image',value:ev.target.result};
+    const prev = document.getElementById('upload-emoji-preview');
+    prev.innerHTML = `<img src="${ev.target.result}" style="width:48px;height:48px;object-fit:contain">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function selectEmoji(em) {
+  newPieceIcon = {type:'emoji',value:em};
+  newPieceIconData = null;
+  document.getElementById('upload-emoji-preview').innerHTML = em;
+  document.getElementById('upload-emoji-preview').style.fontSize='2rem';
+}
+
+function savePiece() {
+  const name = document.getElementById('piece-name-input').value.trim();
+  if(!name){toast('Enter a piece name','error');return;}
+  const piece = {
+    id: Date.now()+'_'+Math.random().toString(36).slice(2),
+    name,
+    icon: newPieceIcon.type==='emoji'?newPieceIcon.value:'',
+    iconData: newPieceIcon.type==='image'?newPieceIcon.value:null,
+    startCol: parseInt(document.getElementById('piece-start-col').value)||0,
+    startRow: parseInt(document.getElementById('piece-start-row').value)||0,
+    color: document.getElementById('piece-color-input').value
+  };
+  if(editingPieceIndex>=0) creatorState.pieces[editingPieceIndex]=piece;
+  else creatorState.pieces.push(piece);
+  closePieceModal();
+  renderPieceList();
+  renderCreatorBoard();
+  toast('Piece added!');
+}
+
+function renderPieceList() {
+  const el = document.getElementById('piece-list');
+  el.innerHTML = '';
+  creatorState.pieces.forEach((p,i)=>{
+    const item = document.createElement('div');
+    item.className='piece-item';
+    const icon = document.createElement('div');
+    icon.className='piece-icon-preview';
+    if(p.iconData){const img=document.createElement('img');img.src=p.iconData;icon.appendChild(img);}
+    else icon.textContent=p.icon||'♟';
+    item.appendChild(icon);
+    const info = document.createElement('div');
+    info.style.flex='1';
+    info.innerHTML=`<div style="font-size:0.9rem">${p.name}</div><div style="font-size:0.75rem;color:var(--text3)">${p.startCol},${p.startRow}</div>`;
+    item.appendChild(info);
+    const del = document.createElement('button');
+    del.className='btn btn-danger btn-sm';
+    del.textContent='✕';
+    del.onclick=(e)=>{e.stopPropagation();creatorState.pieces.splice(i,1);renderPieceList();renderCreatorBoard();};
+    item.appendChild(del);
+    el.appendChild(item);
+  });
+}
+
+function setOrderMethod(m,btn) {
+  creatorState.orderMethod = m;
+  document.querySelectorAll('.order-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+// ============================================================
+// DICE
+// ============================================================
+function addDie(sides) {
+  const existing = creatorState.dice.find(d=>d.sides===sides);
+  if(existing) existing.count++;
+  else creatorState.dice.push({sides,count:1});
+  renderDiceList();
+}
+
+function addCustomDie() {
+  const sides = parseInt(document.getElementById('custom-die-sides').value);
+  if(!sides||sides<2){toast('Enter valid sides (2+)','error');return;}
+  addDie(sides);
+  document.getElementById('custom-die-sides').value='';
+}
+
+function renderDiceList() {
+  const el = document.getElementById('dice-list');
+  el.innerHTML='';
+  creatorState.dice.forEach((d,i)=>{
+    const item=document.createElement('div');
+    item.className='die-item';
+    item.innerHTML=`<span class="die-badge">D${d.sides}</span>
+      <div style="flex:1;font-size:0.9rem">D${d.sides}</div>
+      <div class="num-input-row">
+        <button class="num-btn" onclick="changeDieCount(${i},-1)">−</button>
+        <span class="num-display">${d.count}</span>
+        <button class="num-btn" onclick="changeDieCount(${i},1)">+</button>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="removeDie(${i})" style="margin-left:0.25rem">✕</button>`;
+    el.appendChild(item);
+  });
+}
+
+function changeDieCount(i,delta) {
+  creatorState.dice[i].count = Math.max(1,creatorState.dice[i].count+delta);
+  renderDiceList();
+}
+function removeDie(i) {
+  creatorState.dice.splice(i,1);
+  renderDiceList();
+}
+
+// ============================================================
+// ITEMS
+// ============================================================
+function addItem() {
+  const name = document.getElementById('new-item-name').value.trim();
+  if(!name) return;
+  creatorState.items.push({id:Date.now()+'',name});
+  document.getElementById('new-item-name').value='';
+  renderItemsList();
+}
+
+function renderItemsList() {
+  const el = document.getElementById('items-list');
+  el.innerHTML='';
+  creatorState.items.forEach((item,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem';
+    row.innerHTML=`<span class="item-chip">${item.name}</span><button class="btn btn-danger btn-sm" onclick="removeItem(${i})">✕</button>`;
+    el.appendChild(row);
+  });
+}
+function removeItem(i) {
+  creatorState.items.splice(i,1);
+  renderItemsList();
+}
+
+// ============================================================
+// SAVE / BROWSE
+// ============================================================
+function saveGame() {
+  updateCreatorState();
+  if(!creatorState.name.trim()){toast('Enter a game name','error');return;}
+  const games = getGames();
+  const existing = games.findIndex(g=>g.id===creatorState.id);
+  if(!creatorState.id) creatorState.id = Date.now()+'';
+  creatorState.savedAt = Date.now();
+  if(existing>=0) games[existing]=creatorState;
+  else games.push(creatorState);
+  localStorage.setItem('cge_games',JSON.stringify(games));
+  toast('Game saved!');
+  renderBrowse();
+}
+
+function getGames() {
+  try{return JSON.parse(localStorage.getItem('cge_games'))||[];}catch{return [];}
+}
+
+function renderBrowse() {
+  const q = document.getElementById('search-input')?.value?.toLowerCase()||'';
+  const games = getGames();
+  const grid = document.getElementById('game-grid');
+  if(!grid) return;
+  const filtered = games.filter(g=>!q||g.name?.toLowerCase().includes(q)||g.desc?.toLowerCase().includes(q));
+  if(filtered.length===0) {
+    grid.innerHTML=`<div style="color:var(--text3);font-style:italic;grid-column:1/-1;padding:2rem">No games yet. <a href="#" onclick="switchTab('creator');return false" style="color:var(--gold)">Create one!</a></div>`;
+    return;
+  }
+  grid.innerHTML='';
+  filtered.forEach(g=>{
+    const card=document.createElement('div');
+    card.className='game-card';
+    const tags=(g.tags||'').split(',').filter(Boolean).map(t=>`<span class="tag">${t.trim()}</span>`).join('');
+    card.innerHTML=`
+      <div class="game-card-title">${g.name||'Untitled'}</div>
+      <div class="game-card-meta">${g.minPlayers||2}–${g.maxPlayers||4} players · ${g.playTime||'?'}</div>
+      <div class="game-card-desc">${g.desc||'No description.'}</div>
+      ${tags?`<div class="game-card-tags">${tags}</div><br>`:''}
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <button class="btn btn-gold btn-sm" onclick="hostGame('${g.id}')">Host Game</button>
+        <button class="btn btn-outline btn-sm" onclick="editGame('${g.id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">Delete</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function editGame(id) {
+  const games=getGames();
+  const g=games.find(x=>x.id===id);
+  if(!g) return;
+  Object.assign(creatorState,g);
+  showApp('creator');
+  initCreatorBoard();
+  toast('Game loaded for editing');
+}
+
+function deleteGame(id) {
+  if(!confirm('Delete this game?')) return;
+  const games=getGames().filter(g=>g.id!==id);
+  localStorage.setItem('cge_games',JSON.stringify(games));
+  renderBrowse();
+  toast('Game deleted');
+}
+
+// ============================================================
+// MULTIPLAYER — PeerJS P2P
+// ============================================================
+function initPeer(cb) {
+  if(peer&&!peer.destroyed&&myPeerId) {cb&&cb();return;}
+  const id = 'cge_'+(Math.random().toString(36).slice(2,8)).toUpperCase();
+  peer = new Peer(id, {
+    host: '0.peerjs.com',
+    port: 443,
+    path: '/',
+    secure: true,
+    debug: 0
+  });
+  peer.on('open',pid=>{
+    myPeerId=pid;
+    updateConnStatus('online');
+    cb&&cb();
+  });
+  peer.on('error',e=>{
+    console.error('Peer error',e);
+    updateConnStatus('error');
+    toast('Connection error: '+e.type,'error');
+  });
+  peer.on('connection',conn=>handleIncomingConnection(conn));
+}
+
+function updateConnStatus(s) {
+  const el=document.getElementById('conn-status');
+  if(!el) return;
+  if(s==='online') el.innerHTML='<span style="color:var(--green2)">⬤ online</span>';
+  else if(s==='error') el.innerHTML='<span style="color:var(--red2)">⬤ error</span>';
+  else el.innerHTML='<span style="color:var(--text3)">⬤ offline</span>';
+}
+
+// HOST: receives connection from joiner
+function handleIncomingConnection(conn) {
+  connections.push(conn);
+  conn.on('open',()=>{
+    conn.send({type:'GAME_STATE',game:currentGame,state:gameState});
+    updateLobbyUI();
+  });
+  conn.on('data',data=>handleMessage(data,conn));
+  conn.on('close',()=>{
+    connections=connections.filter(c=>c!==conn);
+    // Remove player from state
+    const pi = gameState.players.findIndex(p=>p.connId===conn.peer);
+    if(pi>=0) {
+      const pn=gameState.players[pi].name;
+      gameState.players.splice(pi,1);
+      addLog(`${pn} disconnected`,'system');
+      broadcast({type:'STATE_UPDATE',state:gameState});
+      updateLobbyUI();
+      if(document.getElementById('lobby-overlay').style.display!=='none') updateLobbyUI();
+      else renderPlayUI();
+    }
+  });
+}
+
+// MESSAGE HANDLER (both host and joiner)
+function handleMessage(data, fromConn) {
+  switch(data.type) {
+    case 'GAME_STATE':
+      currentGame=data.game;
+      gameState=data.state;
+      updateLobbyUI();
+      break;
+    case 'JOIN_REQUEST':
+      if(isHost) {
+        const pid='p_'+(Date.now()+'').slice(-6);
+        const player={id:pid,name:data.name,connId:fromConn.peer,pieceId:null,color:randomColor(),items:[]};
+        gameState.players.push(player);
+        fromConn.send({type:'JOIN_ACK',playerId:pid});
+        broadcast({type:'STATE_UPDATE',state:gameState});
+        updateLobbyUI();
+      }
+      break;
+    case 'JOIN_ACK':
+      myPlayerId=data.playerId;
+      break;
+    case 'STATE_UPDATE':
+      gameState=data.state;
+      if(document.getElementById('lobby-overlay').style.display!=='none') updateLobbyUI();
+      else renderPlayUI();
+      break;
+    case 'PIECE_SELECT':
+      if(isHost) {
+        const p=gameState.players.find(x=>x.id===data.playerId);
+        if(p) {
+          // Check if taken
+          const taken=gameState.players.some(x=>x.id!==data.playerId&&x.pieceId===data.pieceId);
+          if(!taken){p.pieceId=data.pieceId;}
+          broadcast({type:'STATE_UPDATE',state:gameState});
+          updateLobbyUI();
+        }
+      } else {
+        hostConn.send(data);
+      }
+      break;
+    case 'START_GAME':
+      if(!isHost) {
+        currentGame=data.game;
+        gameState=data.state;
+        startPlayMode();
+      }
+      break;
+    case 'MOVE_PIECE':
+      if(isHost) {
+        applyMove(data);
+        broadcast({type:'STATE_UPDATE',state:gameState});
+      } else {
+        hostConn.send(data);
+      }
+      break;
+    case 'ROLL_DIE':
+      if(isHost) {
+        const result=rollDie(data.sides);
+        gameState.log.unshift({type:'roll',player:data.playerName,sides:data.sides,result,time:Date.now()});
+        if(gameState.log.length>50) gameState.log.pop();
+        broadcast({type:'STATE_UPDATE',state:gameState});
+      } else {
+        hostConn.send(data);
+      }
+      break;
+    case 'END_TURN':
+      if(isHost) {
+        gameState.currentTurnIndex=(gameState.currentTurnIndex+1)%gameState.players.length;
+        gameState.log.unshift({type:'system',text:`Turn passed to ${gameState.players[gameState.currentTurnIndex]?.name||'?'}`,time:Date.now()});
+        if(gameState.log.length>50) gameState.log.pop();
+        broadcast({type:'STATE_UPDATE',state:gameState});
+      } else {
+        hostConn.send(data);
+      }
+      break;
+    case 'CHAT':
+      if(isHost) {
+        gameState.log.unshift({type:'chat',player:data.player,text:data.text,time:Date.now()});
+        if(gameState.log.length>50) gameState.log.pop();
+        broadcast({type:'STATE_UPDATE',state:gameState});
+      } else {
+        hostConn.send(data);
+      }
+      break;
+    case 'GIVE_ITEM':
+      if(isHost) {
+        const tp=gameState.players.find(x=>x.id===data.toPlayerId);
+        if(tp) {tp.items=tp.items||[];tp.items.push(data.itemName);}
+        broadcast({type:'STATE_UPDATE',state:gameState});
+      } else {
+        hostConn.send(data);
+      }
+      break;
+  }
+}
+
+function broadcast(msg) {
+  connections.forEach(c=>{try{c.send(msg);}catch(e){}});
+}
+
+function sendToHost(msg) {
+  if(isHost) {
+    handleMessage(msg,null);
+  } else if(hostConn) {
+    hostConn.send(msg);
+  }
+}
+
+function applyMove(data) {
+  // Find piece in gameState.pieces and update position
+  const piece = gameState.pieces.find(p=>p.id===data.pieceId);
+  if(piece) {
+    piece.row=data.toRow;
+    piece.col=data.toCol;
+    gameState.log.unshift({type:'move',player:data.playerName,piece:data.pieceName,toRow:data.toRow,toCol:data.toCol,time:Date.now()});
+    if(gameState.log.length>50) gameState.log.pop();
+  }
+}
+
+function rollDie(sides) {
+  return Math.floor(Math.random()*sides)+1;
+}
+
+// ============================================================
+// HOST GAME
+// ============================================================
+function hostGame(gameId) {
+  const games=getGames();
+  const g=games.find(x=>x.id===gameId);
+  if(!g){toast('Game not found','error');return;}
+  currentGame=g;
+  isHost=true;
+  connections=[];
+  // Ask host name
+  const hname=prompt('Your name:','Host');
+  if(!hname) return;
+  myName=hname;
+  myPlayerId='host_'+Date.now();
+  // Init game state
+  gameState={
+    players:[{id:myPlayerId,name:hname,connId:'host',pieceId:null,color:randomColor(),items:[]}],
+    pieces: g.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})),
+    currentTurnIndex:0,
+    log:[{type:'system',text:'Game lobby opened',time:Date.now()}]
+  };
+  showLobby(true);
+  initPeer(()=>{
+    const code=myPeerId.replace('cge_','');
+    document.getElementById('room-code-display').textContent=code;
+    updateLobbyUI();
+  });
+}
+
+function showJoinDialog() {
+  // Show just the join section
+  document.getElementById('lobby-overlay').style.display='flex';
+  document.getElementById('lobby-host-section').style.display='none';
+  document.getElementById('lobby-join-section').style.display='block';
+  document.getElementById('lobby-game-name').textContent='Enter code to join a game';
+  document.getElementById('lobby-controls').innerHTML=`
+    <button class="btn btn-gold" onclick="doJoinGame()">Join Game</button>
+    <button class="btn btn-outline" onclick="document.getElementById('lobby-overlay').style.display='none'">Cancel</button>`;
+  document.getElementById('lobby-player-list').innerHTML='';
+  document.getElementById('piece-assign-row').innerHTML='';
+  document.getElementById('lobby-piece-assign').style.display='none';
+}
+
+function doJoinGame() {
+  const name=document.getElementById('join-name-input').value.trim();
+  const code=document.getElementById('join-code-input').value.trim().toUpperCase();
+  if(!name){toast('Enter your name','error');return;}
+  if(!code){toast('Enter room code','error');return;}
+  myName=name;
+  isHost=false;
+  toast('Connecting…');
+  initPeer(()=>{
+    const fullId='cge_'+code;
+    const conn=peer.connect(fullId,{reliable:true});
+    hostConn=conn;
+    conn.on('open',()=>{
+      conn.send({type:'JOIN_REQUEST',name});
+      document.getElementById('lobby-host-section').style.display='none';
+      document.getElementById('lobby-join-section').style.display='none';
+      toast('Connected!');
+    });
+    conn.on('data',data=>handleMessage(data,conn));
+    conn.on('close',()=>{
+      toast('Disconnected from host','error');
+      document.getElementById('lobby-overlay').style.display='none';
+    });
+    conn.on('error',e=>toast('Connection failed: '+e,'error'));
+  });
+}
+
+function showLobby(asHost) {
+  document.getElementById('lobby-overlay').style.display='flex';
+  document.getElementById('lobby-game-name').textContent=currentGame?.name||'Game';
+  if(asHost) {
+    document.getElementById('lobby-host-section').style.display='block';
+    document.getElementById('lobby-join-section').style.display='none';
+    document.getElementById('lobby-controls').innerHTML=`
+      <button class="btn btn-gold" onclick="startGame()">▶ Start Game</button>
+      <button class="btn btn-outline" onclick="closeLobby()">Cancel</button>`;
+  } else {
+    document.getElementById('lobby-host-section').style.display='none';
+    document.getElementById('lobby-join-section').style.display='none';
+    document.getElementById('lobby-controls').innerHTML=`
+      <button class="btn btn-outline" onclick="closeLobby()">Leave</button>`;
+  }
+  updateLobbyUI();
+}
+
+function updateLobbyUI() {
+  if(!currentGame) return;
+  const playerListEl=document.getElementById('lobby-player-list');
+  playerListEl.innerHTML='';
+  (gameState.players||[]).forEach(p=>{
+    const row=document.createElement('div');
+    row.className='lobby-player';
+    let pieceName='—';
+    if(p.pieceId){
+      const pc=currentGame.pieces?.find(x=>x.id===p.pieceId);
+      if(pc) pieceName=pc.name;
+    }
+    row.innerHTML=`<span style="width:10px;height:10px;background:${p.color};border-radius:50%;flex:0 0 auto"></span>
+      <span style="flex:1">${p.name}${p.id===myPlayerId?'<mark> (you)</mark>':''}</span>
+      <span style="font-size:0.8rem;color:var(--text3)">${pieceName}</span>`;
+    playerListEl.appendChild(row);
+  });
+  // Piece selection
+  if(currentGame.pieces?.length>0) {
+    document.getElementById('lobby-piece-assign').style.display='block';
+    const row=document.getElementById('piece-assign-row');
+    row.innerHTML='';
+    currentGame.pieces.forEach(p=>{
+      const me=gameState.players.find(x=>x.id===myPlayerId);
+      const chosen=me?.pieceId===p.id;
+      const takenByOther=gameState.players.some(x=>x.id!==myPlayerId&&x.pieceId===p.id);
+      const btn=document.createElement('div');
+      btn.className='piece-pick'+(chosen?' chosen':'');
+      btn.title=p.name+(takenByOther?' (taken)':'');
+      btn.style.opacity=takenByOther?'0.3':'1';
+      btn.style.cursor=takenByOther?'not-allowed':'pointer';
+      if(p.iconData){const img=document.createElement('img');img.src=p.iconData;btn.appendChild(img);}
+      else btn.textContent=p.icon||'♟';
+      if(!takenByOther) btn.onclick=()=>{
+        sendToHost({type:'PIECE_SELECT',playerId:myPlayerId,pieceId:p.id});
+      };
+      row.appendChild(btn);
+    });
+  }
+}
+
+function startGame() {
+  if(!isHost){return;}
+  if(gameState.players.length<1){toast('Need at least 1 player','error');return;}
+  // Determine turn order
+  if(currentGame.orderMethod==='random'||currentGame.orderMethod==='dice') {
+    // Shuffle players
+    for(let i=gameState.players.length-1;i>0;i--) {
+      const j=Math.floor(Math.random()*(i+1));
+      [gameState.players[i],gameState.players[j]]=[gameState.players[j],gameState.players[i]];
+    }
+  }
+  gameState.currentTurnIndex=0;
+  gameState.log.unshift({type:'system',text:'Game started! '+gameState.players[0].name+' goes first.',time:Date.now()});
+  broadcast({type:'START_GAME',game:currentGame,state:gameState});
+  closeLobby();
+  startPlayMode();
+}
+
+function closeLobby() {
+  document.getElementById('lobby-overlay').style.display='none';
+}
+
+function testGame() {
+  updateCreatorState();
+  if(!creatorState.name) creatorState.name='Test Game';
+  currentGame={...creatorState};
+  isHost=true;
+  myName='Test Player';
+  myPlayerId='test_player';
+  gameState={
+    players:[{id:myPlayerId,name:'Test Player',connId:'local',pieceId:currentGame.pieces[0]?.id||null,color:'#c9a84c',items:[]}],
+    pieces:currentGame.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})),
+    currentTurnIndex:0,
+    log:[{type:'system',text:'Test mode started',time:Date.now()}]
+  };
+  startPlayMode();
+}
+
+// ============================================================
+// PLAY MODE
+// ============================================================
+function startPlayMode() {
+  document.getElementById('play-tab-btn').style.display='';
+  switchTab('play');
+  renderPlayUI();
+  document.getElementById('lobby-overlay').style.display='none';
+}
+
+function renderPlayUI() {
+  if(!currentGame) return;
+  renderPlayBoard();
+  renderDiceTray();
+  renderPlayerList();
+  renderGameLog();
+  document.getElementById('play-instructions').textContent=currentGame.instructions||'No instructions provided.';
+  // Items
+  const itemsEl=document.getElementById('play-items-list');
+  if(currentGame.items?.length) {
+    itemsEl.innerHTML=currentGame.items.map(it=>`<span class="item-chip">${it.name}</span> `).join('');
+  } else {
+    itemsEl.textContent='No custom items.';
+  }
+}
+
+function renderPlayBoard() {
+  const board=document.getElementById('play-board');
+  const g=currentGame;
+  const sz=Math.min(g.cellSize||60,80);
+  board.style.gridTemplateColumns=`repeat(${g.cols},${sz}px)`;
+  board.style.gridTemplateRows=`repeat(${g.rows},${sz}px)`;
+  board.innerHTML='';
+  for(let r=0;r<g.rows;r++) {
+    for(let c=0;c<g.cols;c++) {
+      const key=`${r},${c}`;
+      const cellData=g.cells?.[key]||{};
+      const cell=document.createElement('div');
+      cell.className='play-cell';
+      cell.dataset.r=r;cell.dataset.c=c;
+      cell.style.width=sz+'px';cell.style.height=sz+'px';
+      if(cellData.color) cell.style.background=cellData.color;
+      if(cellData.label) {
+        const lbl=document.createElement('div');
+        lbl.style.cssText='position:absolute;font-size:0.55rem;color:rgba(255,255,255,0.5);pointer-events:none;';
+        lbl.textContent=cellData.label;
+        cell.appendChild(lbl);
+      }
+      // Drop target
+      cell.addEventListener('dragover',e=>{e.preventDefault();cell.style.outline='2px solid var(--gold)';});
+      cell.addEventListener('dragleave',()=>cell.style.outline='');
+      cell.addEventListener('drop',e=>{
+        e.preventDefault();
+        cell.style.outline='';
+        const pieceId=e.dataTransfer.getData('pieceId');
+        if(!pieceId) return;
+        const me=gameState.players.find(p=>p.id===myPlayerId);
+        // Allow moving own piece or any piece if you're host
+        const piece=gameState.pieces.find(p=>p.id===pieceId);
+        if(!piece) return;
+        const myTurn=gameState.players[gameState.currentTurnIndex]?.id===myPlayerId;
+        if(!myTurn&&!isHost) {toast('Not your turn','error');return;}
+        const playerWithPiece=gameState.players.find(p=>p.pieceId===pieceId);
+        if(playerWithPiece&&playerWithPiece.id!==myPlayerId&&!isHost){toast('Not your piece','error');return;}
+        sendToHost({type:'MOVE_PIECE',pieceId,toRow:r,toCol:c,playerName:myName,pieceName:piece.name});
+      });
+      board.appendChild(cell);
+    }
+  }
+  // Render pieces
+  gameState.pieces?.forEach(piece=>{
+    const cell=board.querySelector(`[data-r="${piece.row}"][data-c="${piece.col}"]`);
+    if(!cell) return;
+    const sz2=parseInt(cell.style.height)||60;
+    const pm=document.createElement('div');
+    pm.className='play-piece';
+    pm.style.cssText+=`border-color:${piece.color||'#c9a84c'};font-size:${sz2*0.45}px;`;
+    pm.draggable=true;
+    const ownerPlayer=gameState.players.find(p=>p.pieceId===piece.id);
+    if(ownerPlayer?.id===myPlayerId) pm.classList.add('my-piece');
+    if(piece.iconData){const img=document.createElement('img');img.src=piece.iconData;img.style.cssText='width:100%;height:100%;object-fit:contain;pointer-events:none;';pm.appendChild(img);}
+    else{const sp=document.createElement('span');sp.textContent=piece.icon||'♟';sp.style.pointerEvents='none';pm.appendChild(sp);}
+    pm.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('pieceId',piece.id);
+      pm.classList.add('dragging');
+    });
+    pm.addEventListener('dragend',()=>pm.classList.remove('dragging'));
+    // Tooltip for items
+    const ownerItems=ownerPlayer?.items||[];
+    if(ownerItems.length>0) {
+      pm.title=piece.name+' | Items: '+ownerItems.join(', ');
+    } else {
+      pm.title=piece.name+(ownerPlayer?' ('+ownerPlayer.name+')':'');
+    }
+    cell.appendChild(pm);
+  });
+}
+
+function renderDiceTray() {
+  const tray=document.getElementById('dice-tray-dice');
+  tray.innerHTML='';
+  const dice=currentGame.dice||[];
+  dice.forEach(d=>{
+    for(let i=0;i<(d.count||1);i++) {
+      const die=document.createElement('div');
+      die.className=`die-throw ${getDieClass(d.sides)}`;
+      die.title=`Roll D${d.sides}`;
+      die.style.cssText+=`width:50px;height:50px;font-size:0.75rem;`;
+      die.innerHTML=`<span>D${d.sides}</span>`;
+      let lastResult=null;
+      die.onclick=()=>{
+        const myTurn=gameState.players[gameState.currentTurnIndex]?.id===myPlayerId;
+        if(!myTurn&&!isHost){toast('Not your turn','error');return;}
+        die.classList.add('rolling');
+        setTimeout(()=>{
+          die.classList.remove('rolling');
+          sendToHost({type:'ROLL_DIE',sides:d.sides,playerName:myName});
+        },600);
+      };
+      tray.appendChild(die);
+    }
+  });
+}
+
+function getDieClass(sides) {
+  const map={4:'die-d4',6:'die-d6',8:'die-d8',10:'die-d10',12:'die-d12',20:'die-d20'};
+  return map[sides]||'die-custom';
+}
+
+function renderPlayerList() {
+  const el=document.getElementById('player-list-items');
+  el.innerHTML='';
+  gameState.players?.forEach((p,i)=>{
+    const item=document.createElement('div');
+    item.className='player-item'+(i===gameState.currentTurnIndex?' active-turn':'');
+    const pieceDef=currentGame.pieces?.find(x=>x.id===p.pieceId);
+    let pieceHtml='';
+    if(pieceDef) {
+      if(pieceDef.iconData) pieceHtml=`<img src="${pieceDef.iconData}" style="width:20px;height:20px;object-fit:contain;flex:0 0 auto">`;
+      else pieceHtml=`<span style="font-size:1rem">${pieceDef.icon||'♟'}</span>`;
+    }
+    item.innerHTML=`<span class="player-dot" style="background:${p.color}"></span>
+      ${pieceHtml}
+      <span class="player-name-text">${p.name}${p.id===myPlayerId?' ★':''}</span>
+      ${i===gameState.currentTurnIndex?'<span style="color:var(--gold);font-size:0.7rem">▶</span>':''}`;
+    // Give item button
+    if(isHost&&currentGame.items?.length>0&&p.id!==myPlayerId) {
+      const giveBtn=document.createElement('button');
+      giveBtn.className='btn btn-outline btn-sm';
+      giveBtn.style.fontSize='0.65rem';
+      giveBtn.style.padding='0.1rem 0.3rem';
+      giveBtn.textContent='+Item';
+      giveBtn.onclick=()=>giveItemToPlayer(p.id,p.name);
+      item.appendChild(giveBtn);
+    }
+    el.appendChild(item);
+  });
+  // Current turn
+  const cur=gameState.players?.[gameState.currentTurnIndex];
+  document.getElementById('current-turn-display').textContent=cur?.name||'—';
+}
+
+function giveItemToPlayer(playerId,playerName) {
+  if(!currentGame.items?.length) return;
+  const names=currentGame.items.map(i=>i.name).join(', ');
+  const itemName=prompt(`Give which item to ${playerName}?\nAvailable: ${names}`);
+  if(!itemName) return;
+  sendToHost({type:'GIVE_ITEM',toPlayerId:playerId,itemName});
+  toast(`Gave "${itemName}" to ${playerName}`);
+}
+
+function renderGameLog() {
+  const el=document.getElementById('game-log');
+  el.innerHTML='';
+  (gameState.log||[]).slice(0,20).forEach(entry=>{
+    const div=document.createElement('div');
+    let cls='log-entry ';
+    let text='';
+    if(entry.type==='roll'){cls+='log-roll';text=`🎲 ${entry.player} rolled D${entry.sides}: ${entry.result}`;}
+    else if(entry.type==='move'){cls+='log-move';text=`→ ${entry.player} moved ${entry.piece} to (${entry.toCol},${entry.toRow})`;}
+    else if(entry.type==='system'){cls+='log-system';text=`⚙ ${entry.text}`;}
+    else if(entry.type==='chat'){cls+='log-chat';text=`💬 ${entry.player}: ${entry.text}`;}
+    div.className=cls;div.textContent=text;
+    el.appendChild(div);
+  });
+}
+
+function addLog(text,type) {
+  gameState.log.unshift({type,text,time:Date.now()});
+  if(gameState.log.length>50) gameState.log.pop();
+  renderGameLog();
+}
+
+function endTurn() {
+  const myTurn=gameState.players[gameState.currentTurnIndex]?.id===myPlayerId;
+  if(!myTurn&&!isHost){toast('Not your turn','error');return;}
+  sendToHost({type:'END_TURN'});
+}
+
+function sendChat() {
+  const input=document.getElementById('chat-input');
+  const text=input.value.trim();
+  if(!text) return;
+  input.value='';
+  sendToHost({type:'CHAT',player:myName,text});
+}
+
+function showRoomCode() {
+  if(isHost&&myPeerId) {
+    const code=myPeerId.replace('cge_','');
+    toast('Room code: '+code+' (copied!)');
+    navigator.clipboard?.writeText(code).catch(()=>{});
+  } else {
+    toast('Room code not available for joiners');
+  }
+}
+
+function copyRoomCode() {
+  const code=document.getElementById('room-code-display').textContent;
+  navigator.clipboard?.writeText(code).then(()=>toast('Copied: '+code)).catch(()=>toast('Code: '+code));
+}
+
+function leaveGame() {
+  if(!confirm('Leave the game?')) return;
+  connections.forEach(c=>{try{c.close();}catch{}});
+  if(hostConn){try{hostConn.close();}catch{}}
+  connections=[];hostConn=null;currentGame=null;
+  isHost=false;myPlayerId=null;
+  document.getElementById('play-tab-btn').style.display='none';
+  switchTab('browse');
+  toast('Left the game');
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function randomColor() {
+  const colors=['#c9a84c','#c0392b','#27ae60','#2980b9','#8e44ad','#e67e22','#1abc9c','#e91e63'];
+  return colors[Math.floor(Math.random()*colors.length)];
+}
+
+function toast(msg,type='') {
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='toast'+(type?' '+type:'');
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+// Live update play UI when state changes
+const _origHandleMsg = handleMessage;
+// Already defined inline
+
+// ============================================================
+// INIT
+// ============================================================
+// Pre-seed some example games if empty
+(function seedExamples() {
+  if(getGames().length>0) return;
+  const examples=[
+    {
+      id:'ex1',name:'Classic Checkers',desc:'The timeless strategy game of jumps and kings.',
+      rows:8,cols:8,cellSize:60,cells:buildCheckerCells(),
+      pieces:[
+        {id:'p1',name:'Red Piece',icon:'🔴',startCol:0,startRow:0,color:'#c0392b'},
+        {id:'p2',name:'Black Piece',icon:'⚫',startCol:1,startRow:0,color:'#2c3e50'}
+      ],
+      dice:[],items:[],instructions:'Take turns moving diagonally. Jump opponents to capture. Reach the far end to king.',
+      minPlayers:2,maxPlayers:2,playTime:'20–40 min',tags:'strategy,classic',orderMethod:'dice',savedAt:Date.now()
+    },
+    {
+      id:'ex2',name:'Dragon Quest',desc:'A fantasy adventure where heroes seek to slay the dragon.',
+      rows:10,cols:10,cellSize:55,cells:buildRPGCells(),
+      pieces:[
+        {id:'w1',name:'Warrior',icon:'⚔',startCol:0,startRow:9,color:'#c9a84c'},
+        {id:'w2',name:'Mage',icon:'🧙',startCol:1,startRow:9,color:'#8e44ad'},
+        {id:'w3',name:'Dragon',icon:'🐉',startCol:5,startRow:0,color:'#c0392b'}
+      ],
+      dice:[{sides:6,count:2},{sides:20,count:1}],
+      items:[{id:'i1',name:'Health Potion'},{id:'i2',name:'Magic Sword'},{id:'i3',name:'Dragon Scale'}],
+      instructions:'Heroes take turns rolling 2D6 to move. Roll D20 to attack. Collect items to boost your power. Reach the dragon and defeat it!',
+      minPlayers:2,maxPlayers:4,playTime:'45–90 min',tags:'fantasy,adventure,rpg',orderMethod:'dice',savedAt:Date.now()
+    }
+  ];
+  localStorage.setItem('cge_games',JSON.stringify(examples));
+})();
+
+function buildCheckerCells() {
+  const cells={};
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++) {
+    cells[`${r},${c}`]={color:(r+c)%2===0?'#e8dcc8':'#3a2010'};
+  }
+  return cells;
+}
+
+function buildRPGCells() {
+  const palette=['#1a4a2e','#1a3a4a','#2a1a0e','#3a2010','#0f3460','#1a2a4a'];
+  const cells={};
+  for(let r=0;r<10;r++) for(let c=0;c<10;c++) {
+    cells[`${r},${c}`]={color:palette[Math.floor((r*7+c*3)%palette.length)]};
+  }
+  return cells;
+}
+
+// Handle resize
+window.addEventListener('resize',()=>{
+  if(document.getElementById('creator-panel').classList.contains('active')) {
+    renderCreatorBoard();
+  }
+});
+</script>
+</body>
+</html>
