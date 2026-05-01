@@ -137,14 +137,10 @@ label{color:var(--text2);font-size:0.9rem;display:block;margin-bottom:0.3rem}
 .play-layout{flex:1;display:flex;overflow:hidden;min-height:0}
 
 /* info sidebar */
-.game-info-sidebar{width:225px;min-width:225px;max-width:225px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.game-info-sidebar{width:240px;min-width:240px;max-width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
 .info-box{padding:0.75rem;flex:1 1 auto;overflow-y:auto;min-height:0}
-.info-box h4{font-family:'Cinzel Decorative',serif;font-size:0.72rem;color:var(--gold);margin-bottom:0.4rem;position:sticky;top:0;background:var(--bg2);padding:0.2rem 0;z-index:2}
+.info-box h4{font-family:'Cinzel Decorative',serif;font-size:0.72rem;color:var(--gold);margin-bottom:0.6rem;position:sticky;top:-0.75rem;background:var(--bg2);padding:0.5rem 0 0.4rem;margin-top:-0.75rem;z-index:2;border-bottom:1px solid var(--border)}
 .info-text{color:var(--text2);font-size:0.85rem;line-height:1.65;white-space:pre-wrap;word-wrap:break-word}
-.items-tray{padding:0.65rem 0.75rem;border-top:1px solid var(--border);flex-shrink:0;max-height:30%;overflow-y:auto}
-.items-tray h4{font-family:'Cinzel Decorative',serif;font-size:0.68rem;color:var(--gold);margin-bottom:0.4rem}
-.items-chips{display:flex;flex-wrap:wrap;gap:0.3rem}
-
 /* play main */
 .play-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .play-board-wrap{flex:1;overflow:auto;padding:20px;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(58,48,32,0.1) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(58,48,32,0.1) 40px),var(--bg)}
@@ -199,7 +195,7 @@ label{color:var(--text2);font-size:0.9rem;display:block;margin-bottom:0.3rem}
 .die-result{position:absolute;top:-9px;right:-9px;background:var(--gold2);color:#0d0b08;border-radius:50%;width:22px;height:22px;display:none;align-items:center;justify-content:center;font-size:0.65rem;font-weight:bold;font-family:'JetBrains Mono',monospace;box-shadow:0 2px 8px rgba(0,0,0,0.6);pointer-events:none;z-index:5}
 
 /* log + chat */
-.log-chat-area{display:flex;flex-direction:column;border-top:1px solid var(--border);flex:1 1 auto;min-height:140px;overflow:hidden}
+.log-chat-area{display:flex;flex-direction:column;border-top:1px solid var(--border);flex-shrink:0;height:280px}
 .game-log{flex:1 1 auto;overflow-y:auto;padding:0.3rem 0.7rem;background:var(--bg2);min-height:0}
 .log-entry{font-size:0.78rem;padding:0.16rem 0;font-family:'JetBrains Mono',monospace;line-height:1.4;border-bottom:1px solid rgba(58,48,32,0.2);word-break:break-word}
 .log-roll  {color:#c9a0ff}
@@ -210,9 +206,11 @@ label{color:var(--text2);font-size:0.9rem;display:block;margin-bottom:0.3rem}
 .chat-row input{flex:1;font-size:0.85rem;padding:0.35rem 0.55rem}
 .chat-row .btn{padding:0.35rem 0.7rem}
 
-/* right sidebar — now holds players, dice, log/chat, actions */
-.play-sidebar{width:280px;min-width:280px;max-width:280px;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
-.player-list{padding:0.7rem;flex-shrink:0;max-height:32%;overflow-y:auto}
+/* right sidebar — now holds players, counters, items, dice, log/chat, notes, actions */
+.play-sidebar{width:285px;min-width:285px;max-width:285px;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;flex-shrink:0}
+.side-section{flex-shrink:0;border-top:1px solid var(--border);background:var(--bg2)}
+.notes-section{border-bottom:1px solid var(--border)}
+.player-list{padding:0.7rem;flex-shrink:0;max-height:200px;overflow-y:auto}
 .player-list-title{font-family:'Cinzel Decorative',serif;font-size:0.72rem;color:var(--gold);margin-bottom:0.5rem;letter-spacing:0.1em}
 .player-item{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:0.42rem;margin-bottom:0.35rem;display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;transition:border-color 0.2s}
 .player-item.active-turn{border-color:var(--gold);background:rgba(201,168,76,0.08)}
@@ -224,7 +222,18 @@ label{color:var(--text2);font-size:0.9rem;display:block;margin-bottom:0.3rem}
 .player-item-chip .rm:hover{background:rgba(192,57,43,0.4);color:#fff}
 .turn-bar{padding:0.42rem 0.7rem;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:0.83rem;color:var(--text2);text-align:center;flex-shrink:0;background:var(--bg2)}
 .cur-turn{color:var(--gold);font-weight:600}
-.play-actions{padding:0.5rem;display:flex;flex-direction:column;gap:0.3rem;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.play-actions{padding:0.5rem;display:flex;flex-direction:column;gap:0.3rem;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;position:sticky;bottom:0;z-index:5}
+
+/* counters */
+.counter-row{display:flex;align-items:center;gap:0.4rem;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:0.3rem 0.4rem}
+.counter-color-tag{width:5px;align-self:stretch;border-radius:2px;flex:0 0 auto}
+.counter-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:0.05rem}
+.counter-name{font-size:0.78rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.counter-value{font-family:'JetBrains Mono',monospace;font-size:0.95rem;font-weight:bold}
+.counter-controls{display:flex;gap:0.2rem;flex:0 0 auto}
+.counter-btn{width:24px;height:24px;border-radius:3px;border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;font-size:0.95rem;font-family:'JetBrains Mono',monospace;font-weight:bold;display:flex;align-items:center;justify-content:center;transition:all 0.15s;padding:0}
+.counter-btn:hover{border-color:var(--gold);color:var(--gold)}
+.counter-btn.minus:hover{border-color:var(--red2);color:#ffa0a0}
 
 /* LOBBY */
 #lobby-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
@@ -409,6 +418,15 @@ mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;paddin
             <input id="new-item" placeholder="Item name…" style="flex:1" onkeydown="if(event.key==='Enter')addItem()">
             <button class="tool-btn" onclick="addItem()">+</button>
           </div>
+          <div class="sec-hdr">Counters</div>
+          <div style="font-size:0.81rem;color:var(--text2);margin-bottom:0.4rem">Trackable values like HP, Score, Mana, Round. Players can +/- during play.</div>
+          <div id="counters-list"></div>
+          <div style="display:flex;gap:0.4rem;margin-top:0.4rem;flex-wrap:wrap">
+            <input id="new-counter-name" placeholder="Counter name…" style="flex:1;min-width:120px">
+            <input id="new-counter-color" type="color" value="#c9a84c" style="width:42px;height:32px;padding:2px;flex:0 0 auto">
+            <input id="new-counter-start" type="number" value="0" placeholder="0" style="width:60px;flex:0 0 auto" title="Starting value">
+            <button class="tool-btn" onclick="addCounter()">+</button>
+          </div>
           <div class="sec-hdr">Save</div>
           <button class="btn btn-gold" style="width:100%" onclick="saveGame()">💾 Save Game</button>
           <div class="sec-hdr">Import / Export</div>
@@ -442,15 +460,11 @@ mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;paddin
   <!-- PLAY -->
   <div class="panel" id="play-panel">
     <div class="play-layout">
-      <!-- Left: Rules + Items -->
+      <!-- Left: Rules (fully scrollable, board never moves) -->
       <div class="game-info-sidebar">
         <div class="info-box">
           <h4>📖 Rules</h4>
           <div class="info-text" id="play-instr">—</div>
-        </div>
-        <div class="items-tray" id="play-items-tray" style="display:none">
-          <h4>🎒 Items — drag onto piece</h4>
-          <div class="items-chips" id="play-items-chips"></div>
         </div>
       </div>
 
@@ -459,7 +473,7 @@ mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;paddin
         <div class="play-board-wrap"><div id="play-board"></div></div>
       </div>
 
-      <!-- Right: Players → Dice → Chat → Actions -->
+      <!-- Right: Players → Counters → Items → Dice → Log/Chat → Notes → Actions -->
       <div class="play-sidebar">
         <!-- Players -->
         <div class="player-list">
@@ -468,7 +482,19 @@ mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;paddin
         </div>
         <div class="turn-bar">Turn: <span class="cur-turn" id="cur-turn">—</span></div>
 
-        <!-- Dice tray -->
+        <!-- Counters -->
+        <div class="side-section" id="counters-section" style="display:none">
+          <div class="side-section-label" style="padding:0.45rem 0.7rem 0.25rem">🔢 COUNTERS</div>
+          <div id="counters-display" style="padding:0 0.7rem 0.5rem;display:flex;flex-direction:column;gap:0.35rem"></div>
+        </div>
+
+        <!-- Items tray (moved from left) -->
+        <div class="side-section" id="play-items-section" style="display:none">
+          <div class="side-section-label" style="padding:0.45rem 0.7rem 0.25rem">🎒 ITEMS — drag onto piece</div>
+          <div id="play-items-chips" style="padding:0 0.7rem 0.5rem;display:flex;flex-wrap:wrap;gap:0.3rem"></div>
+        </div>
+
+        <!-- Dice -->
         <div class="dice-tray-side">
           <div class="side-section-label">🎲 DICE</div>
           <div id="dice-tray-dice"></div>
@@ -482,6 +508,17 @@ mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;paddin
             <input id="chat-input" placeholder="Chat…" onkeydown="if(event.key==='Enter')sendChat()">
             <button class="btn btn-outline btn-sm" onclick="sendChat()">Send</button>
           </div>
+        </div>
+
+        <!-- Private Notes -->
+        <div class="side-section notes-section">
+          <div class="side-section-label" style="padding:0.4rem 0.7rem 0.2rem;display:flex;align-items:center;gap:0.4rem">
+            <span>📝 MY NOTES</span>
+            <span style="font-size:0.62rem;color:var(--text3);font-family:'JetBrains Mono',monospace;text-transform:none;letter-spacing:0">private</span>
+          </div>
+          <textarea id="player-notes" placeholder="Notes only you can see…"
+            style="width:100%;min-height:70px;max-height:150px;resize:vertical;border:none;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2);color:var(--text);padding:0.45rem 0.7rem;font-family:'Crimson Pro',serif;font-size:0.85rem;border-radius:0"
+            oninput="saveNotes()"></textarea>
         </div>
 
         <!-- Actions -->
@@ -579,7 +616,7 @@ const EMOJIS = ['♟','🔴','🔵','🟢','🟡','⭐','💎','🏰','🐉','�
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let CS = { name:'',desc:'',rows:8,cols:8,cellSize:60,cells:{},pieces:[],dice:[{sides:6,count:1}],items:[],instructions:'',minPlayers:2,maxPlayers:4,playTime:'',tags:'',orderMethod:'dice',id:null };
+let CS = { name:'',desc:'',rows:8,cols:8,cellSize:60,cells:{},pieces:[],dice:[{sides:6,count:1}],items:[],counters:[],instructions:'',minPlayers:2,maxPlayers:4,playTime:'',tags:'',orderMethod:'dice',id:null };
 let selColor='#3a3020', curTool='paint', painting=false;
 let newPieceIcon={type:'emoji',value:'♟'};
 
@@ -621,7 +658,7 @@ function initCreator(){
   document.getElementById('max-pl').value=CS.maxPlayers;
   document.getElementById('play-time').value=CS.playTime;
   document.getElementById('game-tags').value=CS.tags;
-  renderCBoard(); renderPList(); renderDList(); renderIList();
+  renderCBoard(); renderPList(); renderDList(); renderIList(); renderCList();
 }
 function syncCS(){
   CS.name=document.getElementById('game-name').value;
@@ -752,6 +789,49 @@ function renderIList(){
   });
 }
 
+// COUNTERS (creator-side)
+function addCounter(){
+  const name=document.getElementById('new-counter-name').value.trim();
+  const color=document.getElementById('new-counter-color').value;
+  const start=parseInt(document.getElementById('new-counter-start').value)||0;
+  if(!name){toast('Enter a counter name','error');return;}
+  CS.counters=CS.counters||[];
+  CS.counters.push({
+    id:'c_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+    name,
+    color:color||'#c9a84c',
+    start,
+    step:1
+  });
+  document.getElementById('new-counter-name').value='';
+  document.getElementById('new-counter-start').value='0';
+  renderCList();
+}
+function renderCList(){
+  const el=document.getElementById('counters-list'); if(!el)return;
+  el.innerHTML='';
+  (CS.counters||[]).forEach((c,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:0.4rem;margin-bottom:0.3rem;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:0.35rem 0.45rem';
+    const dot=document.createElement('span');
+    dot.style.cssText=`width:14px;height:14px;border-radius:3px;background:${c.color};flex:0 0 auto;border:1px solid rgba(255,255,255,0.15)`;
+    row.appendChild(dot);
+    const nameEl=document.createElement('span');
+    nameEl.style.cssText='flex:1;font-size:0.85rem';
+    nameEl.textContent=c.name;
+    row.appendChild(nameEl);
+    const startEl=document.createElement('span');
+    startEl.style.cssText='font-family:JetBrains Mono,monospace;font-size:0.72rem;color:var(--text3)';
+    startEl.textContent=`start: ${c.start}`;
+    row.appendChild(startEl);
+    const del=document.createElement('button');
+    del.className='btn btn-danger btn-sm'; del.textContent='✕';
+    del.onclick=()=>{CS.counters.splice(i,1);renderCList();};
+    row.appendChild(del);
+    el.appendChild(row);
+  });
+}
+
 // SAVE/BROWSE
 function saveGame(){
   syncCS(); if(!CS.name.trim()){toast('Enter a game name','error');return;}
@@ -774,8 +854,8 @@ function renderBrowse(){
     grid.appendChild(card);
   });
 }
-function editGame(id){ const g=getGames().find(x=>x.id===id);if(!g)return;Object.assign(CS,JSON.parse(JSON.stringify(g)));showApp('creator');toast('Loaded for editing'); }
-function deleteGame(id){ if(!confirm('Delete this game?'))return;localStorage.setItem('cge_games',JSON.stringify(getGames().filter(g=>g.id!==id)));renderBrowse();toast('Deleted'); }
+function editGame(id){ const g=getGames().find(x=>x.id===id);if(!g)return;Object.assign(CS,JSON.parse(JSON.stringify(g)));CS.counters=CS.counters||[];showApp('creator');toast('Loaded for editing'); }
+function deleteGame(id){ if(!confirm('Delete this game?'))return;localStorage.setItem('cge_games',JSON.stringify(getGames().filter(g=>g.id!==id)));try{localStorage.removeItem('cge_notes_'+id);}catch{} renderBrowse();toast('Deleted'); }
 
 // ══════════════════════════════════════════════
 // IMPORT / EXPORT JSON
@@ -940,6 +1020,13 @@ function normalizeImportedGame(g){
     pieces:    Array.isArray(g.pieces)?g.pieces.map(normalizePiece):[],
     dice:      Array.isArray(g.dice)?g.dice.filter(d=>d&&d.sides>=2).map(d=>({sides:parseInt(d.sides)||6,count:Math.max(1,Math.min(10,parseInt(d.count)||1))})):[],
     items:     Array.isArray(g.items)?g.items.map(it=>({id:it.id||Date.now()+'_'+Math.random().toString(36).slice(2),name:String(it.name||'Item').slice(0,50)})):[],
+    counters:  Array.isArray(g.counters)?g.counters.map(c=>({
+      id:c.id||'c_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+      name:String(c.name||'Counter').slice(0,40),
+      color:/^#[0-9a-fA-F]{6}$/.test(c.color)?c.color:'#c9a84c',
+      start:parseInt(c.start)||0,
+      step:Math.max(1,parseInt(c.step)||1)
+    })):[],
     instructions:String(g.instructions||''),
     minPlayers:Math.max(1,Math.min(20,parseInt(g.minPlayers)||2)),
     maxPlayers:Math.max(1,Math.min(20,parseInt(g.maxPlayers)||4)),
@@ -1168,6 +1255,19 @@ function handleMsg(data,fromConn){
       } else sendToHost(data);
       break;
 
+    case 'COUNTER_ADJUST':
+      if(isHost){
+        GS.counterValues=GS.counterValues||{};
+        const counter=(CG.counters||[]).find(c=>c.id===data.counterId);
+        if(!counter)break;
+        const oldVal=GS.counterValues[counter.id]??(parseInt(counter.start)||0);
+        const newVal=oldVal+(parseInt(data.delta)||0);
+        GS.counterValues[counter.id]=newVal;
+        const sym=data.delta>=0?'+':'';
+        pLogBcast({type:'system',text:`${data.playerName||'?'} ${counter.name}: ${oldVal} → ${newVal} (${sym}${data.delta})`});
+      } else sendToHost(data);
+      break;
+
     case 'REQUEST_SYNC':
       // Joiner asking for full state. Host responds with GAME_STATE.
       if(isHost && fromConn && fromConn.peer!=='local'){
@@ -1209,6 +1309,18 @@ function refreshUI(){
   if(inLobby){updateLobbyUI();return;}
   if(CG&&document.getElementById('play-panel').classList.contains('active')){
     renderPlayBoard(); renderPLayerList(); renderLog();
+    // Update counter values in-place (avoid rebuilding the section every tick)
+    if(GS.counterValues){
+      Object.entries(GS.counterValues).forEach(([cid,val])=>{
+        const el=document.querySelector(`[data-counter-value="${cid}"]`);
+        if(el) el.textContent=val;
+      });
+    }
+    // If counters section is empty (e.g., first STATE_UPDATE for a joiner), do a full render
+    const display=document.getElementById('counters-display');
+    if(display && (CG.counters||[]).length>0 && display.children.length===0){
+      renderCountersDisplay();
+    }
     Object.entries(dieResultEls).forEach(([sides,els])=>els.forEach(el=>{
       if(el._lastResult!==undefined){ el.textContent=el._lastResult; el.style.display='flex'; }
     }));
@@ -1224,7 +1336,10 @@ function hostGame(gameId){
   CG=JSON.parse(JSON.stringify(g)); conns=[]; myName=hname.trim();
   myPId='host_'+Date.now().toString(36);
   isGM=false; // multiplayer host, not solo GM
-  GS={ players:[{id:myPId,name:myName,connId:'host',pieceId:null,color:PLAYER_COLORS[0],items:[]}], pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})), currentTurnIndex:0, log:[{type:'system',text:'Lobby open. Waiting for players…',time:Date.now()}], lobbyChat:[] };
+  // Initialize counter starting values
+  const cVals={};
+  (CG.counters||[]).forEach(c=>{ cVals[c.id]=parseInt(c.start)||0; });
+  GS={ players:[{id:myPId,name:myName,connId:'host',pieceId:null,color:PLAYER_COLORS[0],items:[]}], pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})), counterValues:cVals, currentTurnIndex:0, log:[{type:'system',text:'Lobby open. Waiting for players…',time:Date.now()}], lobbyChat:[] };
   showLobby(true);
   // Set isHost BEFORE initPeer so the 'connection' event handler sees it
   isHost=true;
@@ -1382,7 +1497,8 @@ function testGame(){
   syncCS(); if(!CS.name)CS.name='Test Game';
   CG=JSON.parse(JSON.stringify(CS)); isHost=true; myName='Tester'; myPId='test_'+Date.now();
   isGM=true; // Enables full control over all pieces
-  GS={players:[{id:myPId,name:'Tester',connId:'local',pieceId:CG.pieces[0]?.id||null,color:'#c9a84c',items:[]}],pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})),currentTurnIndex:0,log:[{type:'system',text:'Test mode — full GM control',time:Date.now()}],lobbyChat:[],gameStarted:true};
+  const cVals={}; (CG.counters||[]).forEach(c=>{ cVals[c.id]=parseInt(c.start)||0; });
+  GS={players:[{id:myPId,name:'Tester',connId:'local',pieceId:CG.pieces[0]?.id||null,color:'#c9a84c',items:[]}],pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})),counterValues:cVals,currentTurnIndex:0,log:[{type:'system',text:'Test mode — full GM control',time:Date.now()}],lobbyChat:[],gameStarted:true};
   startPlay();
 }
 
@@ -1420,9 +1536,11 @@ function gmMode(gameId){
     });
   });
 
+  const cVals={}; (CG.counters||[]).forEach(c=>{ cVals[c.id]=parseInt(c.start)||0; });
   GS={
     players,
     pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})),
+    counterValues:cVals,
     currentTurnIndex:0,
     log:[{type:'system',text:'👑 Game Master mode — you control everything',time:Date.now()}],
     lobbyChat:[],
@@ -1453,11 +1571,11 @@ function renderPlayUI(){
   const isPureGM = isGM && conns.length===0; // GM solo, no networked players
   if(chatRow) chatRow.style.display=isPureGM?'none':'flex';
 
-  // Items tray
-  const tray=document.getElementById('play-items-tray');
+  // Items tray (now in right sidebar)
+  const itemsSection=document.getElementById('play-items-section');
   const chips=document.getElementById('play-items-chips');
   if(CG.items?.length>0){
-    tray.style.display='block'; chips.innerHTML='';
+    itemsSection.style.display='block'; chips.innerHTML='';
     CG.items.forEach(item=>{
       const chip=document.createElement('span'); chip.className='item-chip'; chip.textContent=item.name;
       chip.draggable=true;
@@ -1465,7 +1583,99 @@ function renderPlayUI(){
       chip.addEventListener('dragend',()=>dragItemName=null);
       chips.appendChild(chip);
     });
-  } else tray.style.display='none';
+  } else itemsSection.style.display='none';
+
+  // Counters
+  renderCountersDisplay();
+
+  // Restore private notes for this game
+  loadNotes();
+}
+
+// ── Counters (live values stored in GS.counterValues, keyed by counter id) ──
+function ensureCounterValues(){
+  GS.counterValues=GS.counterValues||{};
+  (CG.counters||[]).forEach(c=>{
+    if(GS.counterValues[c.id]===undefined) GS.counterValues[c.id]=parseInt(c.start)||0;
+  });
+}
+
+function renderCountersDisplay(){
+  const sec=document.getElementById('counters-section');
+  const display=document.getElementById('counters-display');
+  if(!sec||!display)return;
+  const counters=CG?.counters||[];
+  if(!counters.length){ sec.style.display='none'; return; }
+  ensureCounterValues();
+  sec.style.display='block';
+  display.innerHTML='';
+  counters.forEach(c=>{
+    const row=document.createElement('div');
+    row.className='counter-row';
+    row.dataset.counterId=c.id;
+
+    const tag=document.createElement('div');
+    tag.className='counter-color-tag';
+    tag.style.background=c.color||'#c9a84c';
+    row.appendChild(tag);
+
+    const info=document.createElement('div');
+    info.className='counter-info';
+    const nm=document.createElement('div');
+    nm.className='counter-name';
+    nm.textContent=c.name;
+    nm.title=c.name;
+    info.appendChild(nm);
+    const val=document.createElement('div');
+    val.className='counter-value';
+    val.style.color=c.color||'#c9a84c';
+    val.textContent=GS.counterValues[c.id];
+    val.dataset.counterValue=c.id;
+    info.appendChild(val);
+    row.appendChild(info);
+
+    const ctrls=document.createElement('div');
+    ctrls.className='counter-controls';
+    const minus=document.createElement('button');
+    minus.className='counter-btn minus';
+    minus.textContent='−';
+    minus.title='Decrease';
+    minus.onclick=()=>adjustCounter(c.id,-(c.step||1));
+    const plus=document.createElement('button');
+    plus.className='counter-btn';
+    plus.textContent='+';
+    plus.title='Increase';
+    plus.onclick=()=>adjustCounter(c.id,c.step||1);
+    ctrls.appendChild(minus);
+    ctrls.appendChild(plus);
+    row.appendChild(ctrls);
+
+    display.appendChild(row);
+  });
+}
+
+function adjustCounter(counterId,delta){
+  sendToHost({type:'COUNTER_ADJUST',counterId,delta,playerName:myName});
+}
+
+// ── Private Notes (per-game, per-browser, never broadcast) ──
+function notesStorageKey(){
+  if(!CG||!CG.id) return null;
+  return 'cge_notes_'+CG.id;
+}
+function loadNotes(){
+  const ta=document.getElementById('player-notes');
+  if(!ta)return;
+  const key=notesStorageKey();
+  if(!key){ ta.value=''; return; }
+  try{ ta.value=localStorage.getItem(key)||''; }catch{ ta.value=''; }
+}
+function saveNotes(){
+  const ta=document.getElementById('player-notes');
+  if(!ta)return;
+  const key=notesStorageKey();
+  if(!key)return;
+  try{ localStorage.setItem(key,ta.value||''); }catch(e){ console.warn('Notes save failed',e); }
 }
 
 // ── Play board ──
@@ -1763,11 +1973,13 @@ function showRoomCode(){
 }
 function leaveGame(){
   if(!confirm('Leave the game?'))return;
+  saveNotes(); // flush latest notes to localStorage
   if(window._syncInterval){clearInterval(window._syncInterval);window._syncInterval=null;}
   conns.forEach(c=>{try{c.close();}catch{}});
   if(hostConn){try{hostConn.close();}catch{}}
   if(peer&&!peer.destroyed){try{peer.destroy();}catch{}} peer=null;myPeerId=null;
   conns=[];hostConn=null;CG=null;isHost=false;isGM=false;myPId=null;
+  const notesEl=document.getElementById('player-notes'); if(notesEl) notesEl.value='';
   document.getElementById('play-tab-btn').style.display='none';
   switchTab('browse'); setConnStatus(); toast('Left the game');
 }
@@ -1790,7 +2002,7 @@ function toast(msg,type=''){
   function rCells(){const p=['#1a4a2e','#1a3a4a','#2a1a0e','#3a2010','#0f3460','#1a2a4a'];const c={};for(let r=0;r<10;r++)for(let l=0;l<10;l++)c[`${r},${l}`]={color:p[(r*7+l*3)%p.length]};return c;}
   localStorage.setItem('cge_games',JSON.stringify([
     {id:'ex1',name:'Classic Checkers',desc:'The timeless strategy game.',rows:8,cols:8,cellSize:60,cells:cCells(),pieces:[{id:'p1',name:'Red',icon:'🔴',startCol:0,startRow:0,color:'#c0392b'},{id:'p2',name:'Black',icon:'⚫',startCol:1,startRow:0,color:'#2c3e50'}],dice:[],items:[],instructions:'Take turns moving diagonally.\nJump opponents to capture.\nReach the far end to king.',minPlayers:2,maxPlayers:2,playTime:'20–40 min',tags:'strategy,classic',orderMethod:'dice',savedAt:Date.now()},
-    {id:'ex2',name:'Dragon Quest',desc:'Fantasy adventure — slay the dragon!',rows:10,cols:10,cellSize:55,cells:rCells(),pieces:[{id:'w1',name:'Warrior',icon:'⚔',startCol:0,startRow:9,color:'#c9a84c'},{id:'w2',name:'Mage',icon:'🧙',startCol:1,startRow:9,color:'#8e44ad'},{id:'w3',name:'Dragon',icon:'🐉',startCol:5,startRow:0,color:'#c0392b'}],dice:[{sides:6,count:2},{sides:20,count:1}],items:[{id:'i1',name:'Health Potion'},{id:'i2',name:'Magic Sword'},{id:'i3',name:'Dragon Scale'}],instructions:'Roll 2D6 to move your hero.\nRoll D20 to attack (20 = critical!).\nDrag items from the tray onto your piece to collect them.\nReach the Dragon tile and defeat it!',minPlayers:2,maxPlayers:4,playTime:'45–90 min',tags:'fantasy,rpg',orderMethod:'dice',savedAt:Date.now()}
+    {id:'ex2',name:'Dragon Quest',desc:'Fantasy adventure — slay the dragon!',rows:10,cols:10,cellSize:55,cells:rCells(),pieces:[{id:'w1',name:'Warrior',icon:'⚔',startCol:0,startRow:9,color:'#c9a84c'},{id:'w2',name:'Mage',icon:'🧙',startCol:1,startRow:9,color:'#8e44ad'},{id:'w3',name:'Dragon',icon:'🐉',startCol:5,startRow:0,color:'#c0392b'}],dice:[{sides:6,count:2},{sides:20,count:1}],items:[{id:'i1',name:'Health Potion'},{id:'i2',name:'Magic Sword'},{id:'i3',name:'Dragon Scale'}],counters:[{id:'cnt1',name:'Warrior HP',color:'#c9a84c',start:20,step:1},{id:'cnt2',name:'Mage Mana',color:'#8e44ad',start:10,step:1},{id:'cnt3',name:'Dragon HP',color:'#c0392b',start:50,step:1},{id:'cnt4',name:'Round',color:'#27ae60',start:1,step:1}],instructions:'Roll 2D6 to move your hero.\nRoll D20 to attack (20 = critical!).\nDrag items from the tray onto your piece to collect them.\nReach the Dragon tile and defeat it!\n\nUse counters in the right sidebar to track HP, Mana, and the round number.\n\nWrite private strategy notes in the notes box at the bottom.',minPlayers:2,maxPlayers:4,playTime:'45–90 min',tags:'fantasy,rpg',orderMethod:'dice',savedAt:Date.now()}
   ]));
 })();
 </script>
