@@ -814,9 +814,19 @@ function handleMsg(data,fromConn){
   switch(data.type){
 
     case 'GAME_STATE':
-      CG=data.game; GS=data.state;
-      updateLobbyUI();
-      setLobStat('Connected! Choose your piece then wait for host to start.');
+      // Joiner received initial state from host (sent when connection opens)
+      CG=data.game;
+      GS=data.state;
+      GS.lobbyChat=GS.lobbyChat||[];
+      GS.log=GS.log||[];
+      // If host already started the game, jump straight to play mode
+      if(GS.gameStarted){
+        closeLobby();
+        startPlay();
+      } else {
+        updateLobbyUI();
+        setLobStat('Connected! Choose your piece. Waiting for host to start.');
+      }
       break;
 
     case 'JOIN_REQUEST':
@@ -834,12 +844,33 @@ function handleMsg(data,fromConn){
       break;
 
     case 'JOIN_ACK':
-      myPId=data.playerId; CG=data.game; GS=data.state;
-      showLobby(false); updateLobbyUI();
+      myPId=data.playerId;
+      CG=data.game;
+      GS=data.state;
+      GS.lobbyChat=GS.lobbyChat||[];
+      GS.log=GS.log||[];
+      // If host already started, jump to play. Otherwise show the lobby.
+      if(GS.gameStarted){
+        closeLobby();
+        startPlay();
+      } else {
+        showLobby(false);
+        updateLobbyUI();
+        setLobStat('Connected! Choose your piece. Waiting for host to start.');
+      }
       break;
 
     case 'STATE_UPDATE':
-      GS=data.state; GS.lobbyChat=GS.lobbyChat||[]; GS.log=GS.log||[]; refreshUI();
+      GS=data.state;
+      GS.lobbyChat=GS.lobbyChat||[];
+      GS.log=GS.log||[];
+      // If host already started the game and we're still in lobby, transition
+      if(GS.gameStarted && document.getElementById('lobby-overlay').classList.contains('open')){
+        closeLobby();
+        startPlay();
+      } else {
+        refreshUI();
+      }
       break;
 
     case 'PIECE_SELECT':
@@ -851,7 +882,18 @@ function handleMsg(data,fromConn){
       break;
 
     case 'START_GAME':
-      CG=data.game; GS=data.state; closeLobby(); startPlay();
+      // Joiner receives this from host
+      CG=data.game;
+      GS=data.state;
+      GS.gameStarted=true;
+      GS.lobbyChat=GS.lobbyChat||[];
+      GS.log=GS.log||[];
+      closeLobby();
+      startPlay();
+      // Ask host for fresh state to confirm we have everything
+      setTimeout(()=>{
+        if(hostConn&&hostConn.open) sendTo(hostConn,{type:'REQUEST_SYNC'});
+      },500);
       break;
 
     case 'MOVE_PIECE':
@@ -902,24 +944,48 @@ function handleMsg(data,fromConn){
         pLogBcast({type:'system',text:`${data.itemName} → ${tp?.name||'?'}`});
       } else sendToHost(data);
       break;
+
+    case 'REQUEST_SYNC':
+      // Joiner asking for full state. Host responds with GAME_STATE.
+      if(isHost && fromConn && fromConn.peer!=='local'){
+        sendTo(fromConn,{type:'GAME_STATE',game:CG,state:GS});
+      }
+      break;
   }
 }
 
 function sendTo(conn,msg){ try{conn.send(msg);}catch(e){console.error('sendTo err',e);} }
-function broadcast(msg,skipPeer){ conns.forEach(c=>{if(skipPeer&&c.peer===skipPeer)return;sendTo(c,msg);}); }
+function broadcast(msg,skipPeer){
+  // Filter out closed connections and broadcast
+  conns=conns.filter(c=>c&&!c._destroyed);
+  conns.forEach(c=>{
+    if(skipPeer&&c.peer===skipPeer)return;
+    try{ if(c.open) c.send(msg); else console.warn('Conn not open, skipping:',c.peer); }
+    catch(e){ console.error('broadcast send err',e); }
+  });
+}
 function sendToHost(msg){
   if(isHost){ handleMsg(msg,{peer:'local'}); }
   else if(hostConn&&hostConn.open){ sendTo(hostConn,msg); }
   else toast('Not connected','error');
 }
 function pLog(entry){ entry.time=Date.now(); GS.log=GS.log||[]; GS.log.unshift(entry); if(GS.log.length>80)GS.log.pop(); }
-function pLogBcast(entry){ pLog(entry); broadcast({type:'STATE_UPDATE',state:GS}); refreshUI(); }
+// pLogBcast: push log entry, broadcast full state to all peers, refresh own UI
+function pLogBcast(entry){
+  pLog(entry);
+  if(isHost) broadcast({type:'STATE_UPDATE',state:GS});
+  refreshUI();
+}
+// forceFullSync: host-only, broadcasts entire game state + game definition to ensure peers are caught up
+function forceFullSync(){
+  if(!isHost)return;
+  broadcast({type:'GAME_STATE',game:CG,state:GS});
+}
 function refreshUI(){
   const inLobby=document.getElementById('lobby-overlay').classList.contains('open');
   if(inLobby){updateLobbyUI();return;}
   if(CG&&document.getElementById('play-panel').classList.contains('active')){
     renderPlayBoard(); renderPLayerList(); renderLog();
-    // Re-show die results after board redraw (renderPlayBoard resets dieResultEls)
     Object.entries(dieResultEls).forEach(([sides,els])=>els.forEach(el=>{
       if(el._lastResult!==undefined){ el.textContent=el._lastResult; el.style.display='flex'; }
     }));
@@ -983,9 +1049,15 @@ function showLobby(asHost){
   document.getElementById('lobby-game-name').textContent=CG?.name||'Game';
   document.getElementById('lobby-host-sec').style.display=asHost?'block':'none';
   document.getElementById('lobby-join-sec').style.display='none';
-  document.getElementById('lobby-controls').innerHTML=asHost
-    ?`<button class="btn btn-gold" onclick="startGame()">▶ Start Game</button><button class="btn btn-outline" onclick="cancelHost()">Cancel</button>`
-    :`<button class="btn btn-outline" onclick="closeLobby()">Leave</button>`;
+  if(asHost){
+    document.getElementById('lobby-controls').innerHTML=`
+      <button class="btn btn-gold" id="start-game-btn" onclick="startGame()" style="width:100%;font-size:1.2rem;padding:0.85rem;font-family:'Cinzel Decorative',serif;letter-spacing:0.1em">▶ START GAME</button>
+      <button class="btn btn-outline" onclick="cancelHost()" style="width:100%;margin-top:0.4rem">Cancel & Close Lobby</button>`;
+  } else {
+    document.getElementById('lobby-controls').innerHTML=`
+      <div style="text-align:center;color:var(--gold);font-style:italic;padding:0.6rem;background:rgba(201,168,76,0.08);border:1px solid var(--border);border-radius:3px;width:100%">⏳ Waiting for the host to start the game…</div>
+      <button class="btn btn-outline" onclick="closeLobby()" style="width:100%;margin-top:0.4rem">Leave Lobby</button>`;
+  }
   updateLobbyUI();
 }
 
@@ -1037,14 +1109,46 @@ function copyRoomCode(){ const code=myPeerId||document.getElementById('room-code
 
 function startGame(){
   if(!isHost)return;
-  if(CG.orderMethod==='random'||CG.orderMethod==='dice'){ for(let i=GS.players.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[GS.players[i],GS.players[j]]=[GS.players[j],GS.players[i]];} }
+  if(CG.orderMethod==='random'||CG.orderMethod==='dice'){
+    for(let i=GS.players.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [GS.players[i],GS.players[j]]=[GS.players[j],GS.players[i]];
+    }
+  }
   GS.currentTurnIndex=0;
+  GS.gameStarted=true;
   pLog({type:'system',text:'Game started! '+(GS.players[0]?.name||'?')+' goes first.'});
-  broadcast({type:'START_GAME',game:CG,state:GS});
-  closeLobby(); startPlay();
+
+  // Broadcast START_GAME with full game and state to all currently-connected peers
+  console.log('Broadcasting START_GAME to',conns.length,'peer(s)');
+  conns=conns.filter(c=>c&&!c._destroyed);
+  conns.forEach(c=>{
+    try{
+      if(c.open) c.send({type:'START_GAME',game:CG,state:GS});
+      else console.warn('Skipping unopened conn:',c.peer);
+    }catch(e){ console.error('Failed to send START_GAME to',c.peer,e); }
+  });
+
+  closeLobby();
+  startPlay();
+
+  // After UI transition, force a full sync to ensure everyone has the latest state
+  setTimeout(()=>forceFullSync(),300);
+  setTimeout(()=>forceFullSync(),1000);
+
+  // Start periodic safety sync — every 5s broadcast full state to defend against missed updates
+  if(window._syncInterval) clearInterval(window._syncInterval);
+  window._syncInterval=setInterval(()=>{
+    if(isHost && conns.length>0) forceFullSync();
+  },5000);
 }
 
-function cancelHost(){ conns.forEach(c=>{try{c.close();}catch{}}); conns=[]; if(peer&&!peer.destroyed){try{peer.destroy();}catch{}} peer=null;myPeerId=null; closeLobby(); }
+function cancelHost(){
+  if(window._syncInterval){clearInterval(window._syncInterval);window._syncInterval=null;}
+  conns.forEach(c=>{try{c.close();}catch{}}); conns=[];
+  if(peer&&!peer.destroyed){try{peer.destroy();}catch{}} peer=null;myPeerId=null;
+  closeLobby();
+}
 function closeLobby(){ document.getElementById('lobby-overlay').classList.remove('open'); }
 
 // ══════════════════════════════════════════════
@@ -1271,6 +1375,7 @@ function showRoomCode(){
 }
 function leaveGame(){
   if(!confirm('Leave the game?'))return;
+  if(window._syncInterval){clearInterval(window._syncInterval);window._syncInterval=null;}
   conns.forEach(c=>{try{c.close();}catch{}});
   if(hostConn){try{hostConn.close();}catch{}}
   if(peer&&!peer.destroyed){try{peer.destroy();}catch{}} peer=null;myPeerId=null;
