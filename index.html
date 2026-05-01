@@ -312,6 +312,7 @@ mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;paddin
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
         <input id="search-input" placeholder="Search…" style="width:170px" oninput="renderBrowse()">
         <button class="btn btn-outline btn-sm" onclick="showJoinDialog()">Join with ID</button>
+        <button class="btn btn-outline btn-sm" onclick="importGameFile()">⬆ Import JSON</button>
         <button class="btn btn-gold btn-sm" onclick="switchTab('creator')">+ Create</button>
       </div>
     </div>
@@ -410,6 +411,13 @@ mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;paddin
           </div>
           <div class="sec-hdr">Save</div>
           <button class="btn btn-gold" style="width:100%" onclick="saveGame()">💾 Save Game</button>
+          <div class="sec-hdr">Import / Export</div>
+          <div style="font-size:0.79rem;color:var(--text2);margin-bottom:0.4rem">Share your game as a JSON file. Includes everything: board, pieces, dice, items, rules.</div>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" onclick="exportCurrentGame()" style="flex:1;min-width:0">⬇ Export JSON</button>
+            <button class="btn btn-outline btn-sm" onclick="importGameFile()" style="flex:1;min-width:0">⬆ Import JSON</button>
+          </div>
+          <input type="file" id="import-file-input" accept=".json,application/json" style="display:none" onchange="handleImportFile(event)">
         </div>
       </div>
     </div>
@@ -762,12 +770,197 @@ function renderBrowse(){
   filtered.forEach(g=>{
     const card=document.createElement('div'); card.className='game-card';
     const tags=(g.tags||'').split(',').filter(Boolean).map(t=>`<span class="tag">${esc(t.trim())}</span>`).join('');
-    card.innerHTML=`<div class="game-card-title">${esc(g.name||'Untitled')}</div><div class="game-card-meta">${g.minPlayers||2}–${g.maxPlayers||4} players · ${esc(g.playTime||'?')}</div><div class="game-card-desc">${esc(g.desc||'No description.')}</div>${tags?`<div class="game-card-tags">${tags}</div>`:''}<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem"><button class="btn btn-gold btn-sm" onclick="hostGame('${g.id}')">🌐 Host Online</button><button class="btn btn-outline btn-sm" onclick="gmMode('${g.id}')" title="Solo mode: control everything yourself">👑 GM Mode</button><button class="btn btn-outline btn-sm" onclick="editGame('${g.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">✕</button></div>`;
+    card.innerHTML=`<div class="game-card-title">${esc(g.name||'Untitled')}</div><div class="game-card-meta">${g.minPlayers||2}–${g.maxPlayers||4} players · ${esc(g.playTime||'?')}</div><div class="game-card-desc">${esc(g.desc||'No description.')}</div>${tags?`<div class="game-card-tags">${tags}</div>`:''}<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem"><button class="btn btn-gold btn-sm" onclick="hostGame('${g.id}')">🌐 Host Online</button><button class="btn btn-outline btn-sm" onclick="gmMode('${g.id}')" title="Solo mode: control everything yourself">👑 GM Mode</button><button class="btn btn-outline btn-sm" onclick="editGame('${g.id}')">Edit</button><button class="btn btn-outline btn-sm" onclick="exportGameById('${g.id}')" title="Download as JSON">⬇</button><button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">✕</button></div>`;
     grid.appendChild(card);
   });
 }
 function editGame(id){ const g=getGames().find(x=>x.id===id);if(!g)return;Object.assign(CS,JSON.parse(JSON.stringify(g)));showApp('creator');toast('Loaded for editing'); }
 function deleteGame(id){ if(!confirm('Delete this game?'))return;localStorage.setItem('cge_games',JSON.stringify(getGames().filter(g=>g.id!==id)));renderBrowse();toast('Deleted'); }
+
+// ══════════════════════════════════════════════
+// IMPORT / EXPORT JSON
+// ══════════════════════════════════════════════
+const EXPORT_FORMAT='cge-game-v1';
+
+// Build a portable game object for export. Strips runtime fields, includes a format marker.
+function buildExportPayload(game){
+  const clean=JSON.parse(JSON.stringify(game));
+  delete clean.savedAt; // re-stamped on import
+  return {
+    format:EXPORT_FORMAT,
+    exportedAt:new Date().toISOString(),
+    appVersion:'Coots BGE',
+    game:clean
+  };
+}
+
+// Slugify a game name into a safe filename
+function slugFilename(name){
+  return (name||'game').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'game';
+}
+
+// Trigger a browser download of a JSON blob
+function downloadJSON(filename,obj){
+  try{
+    const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    return true;
+  }catch(e){ console.error('Download failed',e); toast('Download failed','error'); return false; }
+}
+
+// Export the game currently loaded in the creator
+function exportCurrentGame(){
+  syncCS();
+  if(!CS.name||!CS.name.trim()){toast('Give your game a name first','error');return;}
+  const payload=buildExportPayload(CS);
+  const filename=`${slugFilename(CS.name)}.cge.json`;
+  if(downloadJSON(filename,payload)) toast('Exported '+filename);
+}
+
+// Export a saved game from the library by id
+function exportGameById(id){
+  const g=getGames().find(x=>x.id===id);
+  if(!g){toast('Game not found','error');return;}
+  const payload=buildExportPayload(g);
+  const filename=`${slugFilename(g.name)}.cge.json`;
+  if(downloadJSON(filename,payload)) toast('Exported '+filename);
+}
+
+// Open the file picker for importing
+function importGameFile(){
+  const inp=document.getElementById('import-file-input');
+  if(inp){ inp.value=''; inp.click(); return; }
+  // If creator panel hasn't been opened yet, the input doesn't exist — create one on the fly
+  const tmp=document.createElement('input');
+  tmp.type='file'; tmp.accept='.json,application/json';
+  tmp.onchange=e=>handleImportFile(e);
+  tmp.click();
+}
+
+function handleImportFile(event){
+  const file=event.target.files&&event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const parsed=JSON.parse(ev.target.result);
+      processImportedJSON(parsed);
+    }catch(e){
+      console.error('Import parse error',e);
+      toast('Invalid JSON file','error');
+    }
+  };
+  reader.onerror=()=>toast('Failed to read file','error');
+  reader.readAsText(file);
+}
+
+// Validate & install an imported game. Accepts both the wrapped envelope and a raw game object.
+function processImportedJSON(parsed){
+  if(!parsed||typeof parsed!=='object'){toast('Invalid game data','error');return;}
+
+  // Two accepted shapes: {format:'cge-game-v1', game:{...}} OR raw game object
+  let g;
+  if(parsed.format===EXPORT_FORMAT && parsed.game) g=parsed.game;
+  else if(parsed.name && (parsed.rows||parsed.cols||parsed.pieces)) g=parsed;
+  else {
+    toast('Not a valid Coot\'s BGE game file','error');
+    return;
+  }
+
+  // Validate the minimum required shape
+  const errs=validateGameShape(g);
+  if(errs.length){
+    toast('Import failed: '+errs[0],'error');
+    console.warn('Import validation errors:',errs);
+    return;
+  }
+
+  // Normalize defaults so missing optional fields don't break the app
+  const game=normalizeImportedGame(g);
+
+  // Save with a fresh id so it doesn't collide with existing games of the same id
+  game.id='imp_'+Date.now().toString(36);
+  game.savedAt=Date.now();
+
+  const games=getGames();
+
+  // If a game with the same name already exists, ask whether to replace or rename
+  const dup=games.find(x=>x.name&&x.name.toLowerCase()===game.name.toLowerCase());
+  if(dup){
+    const choice=prompt(
+      `A game named "${dup.name}" already exists.\n\nType R to REPLACE the existing one,\nor press OK to import as a copy:`,
+      'COPY'
+    );
+    if(choice===null)return; // cancelled
+    if(choice.trim().toUpperCase()==='R'){
+      // Replace the existing game (keep its id so it overwrites)
+      game.id=dup.id;
+      const idx=games.findIndex(x=>x.id===dup.id);
+      games[idx]=game;
+    } else {
+      game.name=game.name+' (imported)';
+      games.push(game);
+    }
+  } else {
+    games.push(game);
+  }
+
+  localStorage.setItem('cge_games',JSON.stringify(games));
+  renderBrowse();
+  toast(`Imported "${game.name}"!`);
+}
+
+function validateGameShape(g){
+  const errs=[];
+  if(typeof g.name!=='string'||!g.name.trim()) errs.push('missing game name');
+  if(typeof g.rows!=='number'||g.rows<1||g.rows>50) errs.push('invalid rows');
+  if(typeof g.cols!=='number'||g.cols<1||g.cols>50) errs.push('invalid cols');
+  if(g.pieces&&!Array.isArray(g.pieces)) errs.push('pieces must be an array');
+  if(g.dice&&!Array.isArray(g.dice)) errs.push('dice must be an array');
+  if(g.items&&!Array.isArray(g.items)) errs.push('items must be an array');
+  if(g.cells&&typeof g.cells!=='object') errs.push('cells must be an object');
+  return errs;
+}
+
+function normalizeImportedGame(g){
+  const out={
+    id:        g.id||'imp_'+Date.now().toString(36),
+    name:      String(g.name||'Imported Game').slice(0,100),
+    desc:      String(g.desc||''),
+    rows:      Math.max(2,Math.min(30,parseInt(g.rows)||8)),
+    cols:      Math.max(2,Math.min(30,parseInt(g.cols)||8)),
+    cellSize:  Math.max(30,Math.min(120,parseInt(g.cellSize)||60)),
+    cells:     (g.cells&&typeof g.cells==='object')?g.cells:{},
+    pieces:    Array.isArray(g.pieces)?g.pieces.map(normalizePiece):[],
+    dice:      Array.isArray(g.dice)?g.dice.filter(d=>d&&d.sides>=2).map(d=>({sides:parseInt(d.sides)||6,count:Math.max(1,Math.min(10,parseInt(d.count)||1))})):[],
+    items:     Array.isArray(g.items)?g.items.map(it=>({id:it.id||Date.now()+'_'+Math.random().toString(36).slice(2),name:String(it.name||'Item').slice(0,50)})):[],
+    instructions:String(g.instructions||''),
+    minPlayers:Math.max(1,Math.min(20,parseInt(g.minPlayers)||2)),
+    maxPlayers:Math.max(1,Math.min(20,parseInt(g.maxPlayers)||4)),
+    playTime:  String(g.playTime||''),
+    tags:      String(g.tags||''),
+    orderMethod:['dice','random','manual','oldest'].includes(g.orderMethod)?g.orderMethod:'dice'
+  };
+  return out;
+}
+
+function normalizePiece(p){
+  return {
+    id:       p.id||Date.now()+'_'+Math.random().toString(36).slice(2),
+    name:     String(p.name||'Piece').slice(0,50),
+    icon:     typeof p.icon==='string'?p.icon.slice(0,4):'♟',
+    iconData: (typeof p.iconData==='string'&&p.iconData.startsWith('data:image/'))?p.iconData:null,
+    startCol: Math.max(0,parseInt(p.startCol)||0),
+    startRow: Math.max(0,parseInt(p.startRow)||0),
+    color:    /^#[0-9a-fA-F]{6}$/.test(p.color)?p.color:'#c9a84c'
+  };
+}
 
 // ══════════════════════════════════════════════
 // MULTIPLAYER — PeerJS (FIXED)
