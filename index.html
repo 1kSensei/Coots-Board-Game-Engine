@@ -171,12 +171,13 @@ label{color:var(--text2);font-size:0.9rem;display:block;margin-bottom:0.3rem}
 .play-piece.dragging{opacity:0.45;cursor:grabbing;z-index:1000}
 .play-piece.item-target{outline:2px dashed var(--gold2);outline-offset:2px}
 .piece-badge{
-  position:absolute;top:-7px;right:-7px;
+  position:absolute;top:-5px;right:-5px;
   background:var(--gold2);color:#0d0b08;
-  border-radius:50%;width:17px;height:17px;
-  font-size:0.55rem;font-weight:bold;font-family:'JetBrains Mono',monospace;
+  border-radius:50%;min-width:14px;height:14px;padding:0 2px;
+  font-size:0.5rem;font-weight:bold;font-family:'JetBrains Mono',monospace;
   display:flex;align-items:center;justify-content:center;
   pointer-events:none;z-index:30;
+  box-shadow:0 1px 3px rgba(0,0,0,0.6);
 }
 
 /* dice tray */
@@ -269,7 +270,7 @@ mark{background:rgba(201,168,76,0.2);color:var(--gold2);border-radius:2px;paddin
     <div class="landing-card" onclick="showApp('browse')">
       <span class="landing-card-icon">🎲</span>
       <h3>Browse Games</h3>
-      <p>Explore and play board games. Host a session with friends online.</p>
+      <p>Play board games. Host online with friends, or run a solo Game Master session.</p>
     </div>
     <div class="landing-card" onclick="showApp('creator')">
       <span class="landing-card-icon">🛠</span>
@@ -565,7 +566,7 @@ let newPieceIcon={type:'emoji',value:'♟'};
 
 // Multiplayer
 let peer=null, myPeerId=null, myName='', myPId=null;
-let isHost=false, conns=[], hostConn=null;
+let isHost=false, isGM=false, conns=[], hostConn=null;
 let CG=null; // current game definition
 let GS={ players:[],pieces:[],currentTurnIndex:0,log:[],lobbyChat:[] };
 let activeDragPieceId=null; // module-level, set on dragstart, cleared on dragend
@@ -750,7 +751,7 @@ function renderBrowse(){
   filtered.forEach(g=>{
     const card=document.createElement('div'); card.className='game-card';
     const tags=(g.tags||'').split(',').filter(Boolean).map(t=>`<span class="tag">${esc(t.trim())}</span>`).join('');
-    card.innerHTML=`<div class="game-card-title">${esc(g.name||'Untitled')}</div><div class="game-card-meta">${g.minPlayers||2}–${g.maxPlayers||4} players · ${esc(g.playTime||'?')}</div><div class="game-card-desc">${esc(g.desc||'No description.')}</div>${tags?`<div class="game-card-tags">${tags}</div>`:''}<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem"><button class="btn btn-gold btn-sm" onclick="hostGame('${g.id}')">Host</button><button class="btn btn-outline btn-sm" onclick="editGame('${g.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">Delete</button></div>`;
+    card.innerHTML=`<div class="game-card-title">${esc(g.name||'Untitled')}</div><div class="game-card-meta">${g.minPlayers||2}–${g.maxPlayers||4} players · ${esc(g.playTime||'?')}</div><div class="game-card-desc">${esc(g.desc||'No description.')}</div>${tags?`<div class="game-card-tags">${tags}</div>`:''}<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem"><button class="btn btn-gold btn-sm" onclick="hostGame('${g.id}')">🌐 Host Online</button><button class="btn btn-outline btn-sm" onclick="gmMode('${g.id}')" title="Solo mode: control everything yourself">👑 GM Mode</button><button class="btn btn-outline btn-sm" onclick="editGame('${g.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteGame('${g.id}')">✕</button></div>`;
     grid.appendChild(card);
   });
 }
@@ -780,7 +781,8 @@ function initPeer(cb){
 }
 function setConnStatus(s){
   const el=document.getElementById('conn-status'); if(!el)return;
-  if(s==='online')el.innerHTML='<span style="color:var(--green2)">⬤ online</span>';
+  if(isGM && conns.length===0)el.innerHTML='<span style="color:var(--gold2)">👑 GM mode</span>';
+  else if(s==='online')el.innerHTML='<span style="color:var(--green2)">⬤ online</span>';
   else if(s==='error')el.innerHTML='<span style="color:var(--red2)">⬤ error</span>';
   else el.innerHTML='<span style="color:var(--text3)">⬤ offline</span>';
 }
@@ -1000,6 +1002,7 @@ function hostGame(gameId){
   const hname=prompt('Your name:','Host'); if(!hname||!hname.trim())return;
   CG=JSON.parse(JSON.stringify(g)); conns=[]; myName=hname.trim();
   myPId='host_'+Date.now().toString(36);
+  isGM=false; // multiplayer host, not solo GM
   GS={ players:[{id:myPId,name:myName,connId:'host',pieceId:null,color:PLAYER_COLORS[0],items:[]}], pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})), currentTurnIndex:0, log:[{type:'system',text:'Lobby open. Waiting for players…',time:Date.now()}], lobbyChat:[] };
   showLobby(true);
   // Set isHost BEFORE initPeer so the 'connection' event handler sees it
@@ -1008,7 +1011,7 @@ function hostGame(gameId){
 }
 
 function showJoinDialog(){
-  CG=null; isHost=false;
+  CG=null; isHost=false; isGM=false;
   document.getElementById('lobby-overlay').classList.add('open');
   document.getElementById('lobby-host-sec').style.display='none';
   document.getElementById('lobby-join-sec').style.display='block';
@@ -1157,8 +1160,57 @@ function closeLobby(){ document.getElementById('lobby-overlay').classList.remove
 function testGame(){
   syncCS(); if(!CS.name)CS.name='Test Game';
   CG=JSON.parse(JSON.stringify(CS)); isHost=true; myName='Tester'; myPId='test_'+Date.now();
-  GS={players:[{id:myPId,name:'Tester',connId:'local',pieceId:CG.pieces[0]?.id||null,color:'#c9a84c',items:[]}],pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})),currentTurnIndex:0,log:[{type:'system',text:'Test mode',time:Date.now()}],lobbyChat:[]};
+  isGM=true; // Enables full control over all pieces
+  GS={players:[{id:myPId,name:'Tester',connId:'local',pieceId:CG.pieces[0]?.id||null,color:'#c9a84c',items:[]}],pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})),currentTurnIndex:0,log:[{type:'system',text:'Test mode — full GM control',time:Date.now()}],lobbyChat:[],gameStarted:true};
   startPlay();
+}
+
+// ══════════════════════════════════════════════
+// GAME MASTER MODE — solo, no networking, full control over everything
+// ══════════════════════════════════════════════
+function gmMode(gameId){
+  const g=getGames().find(x=>x.id===gameId);
+  if(!g){toast('Game not found','error');return;}
+  const gmName=prompt('Your name (Game Master):','GM');
+  if(!gmName||!gmName.trim())return;
+
+  CG=JSON.parse(JSON.stringify(g));
+  isHost=true;     // Treat GM as host so all sendToHost calls process locally
+  isGM=true;       // GM flag: bypass turn enforcement, allow controlling any piece
+  conns=[];
+  myName=gmName.trim();
+  myPId='gm_'+Date.now().toString(36);
+
+  // Create one "player" per piece in the game — the GM controls all of them
+  const players=[{
+    id:myPId, name:myName, connId:'local',
+    pieceId:null, color:'#e8c96a', items:[], isGM:true
+  }];
+  // Auto-assign a "virtual player" for each piece so items can be given to pieces
+  CG.pieces.forEach((p,i)=>{
+    players.push({
+      id:'gmpc_'+p.id,
+      name:p.name,
+      connId:'local',
+      pieceId:p.id,
+      color:p.color||PLAYER_COLORS[(i+1)%PLAYER_COLORS.length],
+      items:[],
+      isVirtual:true // marks this as a GM-controlled piece-player
+    });
+  });
+
+  GS={
+    players,
+    pieces:CG.pieces.map(p=>({...p,row:p.startRow,col:p.startCol})),
+    currentTurnIndex:0,
+    log:[{type:'system',text:'👑 Game Master mode — you control everything',time:Date.now()}],
+    lobbyChat:[],
+    gameStarted:true
+  };
+
+  startPlay();
+  setConnStatus(); // refresh topbar to show GM badge
+  toast('Game Master mode — full control of the board!');
 }
 
 // ══════════════════════════════════════════════
@@ -1174,6 +1226,12 @@ function renderPlayUI(){
   if(!CG)return;
   renderPlayBoard(); renderDiceTray(); renderPLayerList(); renderLog();
   document.getElementById('play-instr').textContent=CG.instructions||'No instructions.';
+
+  // Hide chat in GM-only mode (no one else to chat with)
+  const chatRow=document.querySelector('.chat-row');
+  const isPureGM = isGM && conns.length===0; // GM solo, no networked players
+  if(chatRow) chatRow.style.display=isPureGM?'none':'flex';
+
   // Items tray
   const tray=document.getElementById('play-items-tray');
   const chips=document.getElementById('play-items-chips');
@@ -1220,56 +1278,106 @@ function renderPlayBoard(){
     board.appendChild(cell);
   }
 
-  // Render pieces on top of cells
+  // Group pieces by cell so we can lay out multiple pieces without overlap
+  const piecesByCell={};
   (GS.pieces||[]).forEach(piece=>{
-    const cell=board.querySelector(`[data-r="${piece.row}"][data-c="${piece.col}"]`);
+    const k=piece.row+','+piece.col;
+    if(!piecesByCell[k])piecesByCell[k]=[];
+    piecesByCell[k].push(piece);
+  });
+
+  // Render pieces on top of cells, fanning them out when multiple share a cell
+  Object.entries(piecesByCell).forEach(([cellKey,piecesHere])=>{
+    const cell=board.querySelector(`[data-r="${piecesHere[0].row}"][data-c="${piecesHere[0].col}"]`);
     if(!cell)return;
-    const pm=document.createElement('div');
-    pm.className='play-piece';
-    pm.dataset.pieceId=piece.id;
-    pm.style.borderColor=piece.color||'#c9a84c';
-    pm.style.fontSize=sz*0.42+'px';
+    const total=piecesHere.length;
 
-    const ownerP=GS.players.find(p=>p.pieceId===piece.id);
-    if(ownerP?.id===myPId)pm.classList.add('my-piece');
+    piecesHere.forEach((piece,idx)=>{
+      const pm=document.createElement('div');
+      pm.className='play-piece';
+      pm.dataset.pieceId=piece.id;
+      pm.style.borderColor=piece.color||'#c9a84c';
 
-    if(piece.iconData){const img=document.createElement('img');img.src=piece.iconData;pm.appendChild(img);}
-    else{const sp=document.createElement('span');sp.textContent=piece.icon||'♟';pm.appendChild(sp);}
+      // Layout: 1 piece centered (full size). 2-4 pieces in a grid. 5+ pieces fan out smaller.
+      let pieceSize, top, left, fontMul;
+      if(total===1){
+        pieceSize=84; top=8; left=8; fontMul=0.42;
+      } else if(total===2){
+        // Side-by-side
+        pieceSize=46; fontMul=0.28;
+        top=27; left=idx===0?2:52;
+      } else if(total===3){
+        // Top row of 2, bottom one centered
+        pieceSize=42; fontMul=0.24;
+        if(idx===0){top=4;left=8;}
+        else if(idx===1){top=4;left=52;}
+        else {top=54;left=29;}
+      } else if(total===4){
+        // 2×2 grid
+        pieceSize=42; fontMul=0.24;
+        const row=Math.floor(idx/2), col=idx%2;
+        top=4+row*52; left=8+col*44;
+      } else {
+        // Many pieces — small circles arranged in a grid (3 columns)
+        pieceSize=Math.max(24,Math.floor(80/Math.ceil(total/3)));
+        fontMul=Math.max(0.16,0.22-total*0.01);
+        const cols=3;
+        const row=Math.floor(idx/cols), col=idx%cols;
+        const cellsRows=Math.ceil(total/cols);
+        const slotW=92/cols, slotH=92/cellsRows;
+        left=4+col*slotW+(slotW-pieceSize)/2;
+        top=4+row*slotH+(slotH-pieceSize)/2;
+      }
 
-    // Item badge
-    const ownerItems=ownerP?.items||[];
-    if(ownerItems.length>0){
-      const badge=document.createElement('div'); badge.className='piece-badge';
-      badge.textContent=ownerItems.length; badge.title=ownerItems.join(', ');
-      pm.appendChild(badge);
-    }
-    pm.title=piece.name+(ownerP?' ('+ownerP.name+')':'')+(ownerItems.length?'\nItems: '+ownerItems.join(', '):'');
+      pm.style.top=top+'%';
+      pm.style.left=left+'%';
+      pm.style.width=pieceSize+'%';
+      pm.style.height=pieceSize+'%';
+      pm.style.fontSize=sz*fontMul+'px';
+      // Stagger z-index so dragged piece floats above neighbors
+      pm.style.zIndex=10+idx;
 
-    // DRAG: piece — don't stopPropagation, use global var for reliable cross-browser DnD
-    pm.draggable=true;
-    pm.addEventListener('dragstart',e=>{
-      activeDragPieceId=piece.id;
-      e.dataTransfer.setData('text/plain',piece.id); // text/plain works in all browsers
-      e.dataTransfer.effectAllowed='move';
-      setTimeout(()=>pm.classList.add('dragging'),0);
+      const ownerP=GS.players.find(p=>p.pieceId===piece.id);
+      if(ownerP?.id===myPId)pm.classList.add('my-piece');
+
+      if(piece.iconData){const img=document.createElement('img');img.src=piece.iconData;pm.appendChild(img);}
+      else{const sp=document.createElement('span');sp.textContent=piece.icon||'♟';pm.appendChild(sp);}
+
+      // Item badge
+      const ownerItems=ownerP?.items||[];
+      if(ownerItems.length>0){
+        const badge=document.createElement('div'); badge.className='piece-badge';
+        badge.textContent=ownerItems.length; badge.title=ownerItems.join(', ');
+        pm.appendChild(badge);
+      }
+      pm.title=piece.name+(ownerP?' ('+ownerP.name+')':'')+(ownerItems.length?'\nItems: '+ownerItems.join(', '):'');
+
+      // DRAG: piece — don't stopPropagation, use global var for reliable cross-browser DnD
+      pm.draggable=true;
+      pm.addEventListener('dragstart',e=>{
+        activeDragPieceId=piece.id;
+        e.dataTransfer.setData('text/plain',piece.id);
+        e.dataTransfer.effectAllowed='move';
+        setTimeout(()=>pm.classList.add('dragging'),0);
+      });
+      pm.addEventListener('dragend',()=>{ pm.classList.remove('dragging'); activeDragPieceId=null; });
+
+      // DROP: item onto piece — stopPropagation so cell dragover doesn't interfere
+      pm.addEventListener('dragover',e=>{
+        if(dragItemName){ e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect='copy'; pm.classList.add('item-target'); }
+      });
+      pm.addEventListener('dragleave',e=>{ if(!pm.contains(e.relatedTarget))pm.classList.remove('item-target'); });
+      pm.addEventListener('drop',e=>{
+        e.preventDefault(); e.stopPropagation(); pm.classList.remove('item-target');
+        const itemName=e.dataTransfer.getData('itemName')||dragItemName; if(!itemName)return;
+        const owner=GS.players.find(p=>p.pieceId===piece.id);
+        if(!owner){toast('No player owns this piece','error');return;}
+        sendToHost({type:'GIVE_ITEM',toPlayerId:owner.id,itemName});
+        toast(`"${itemName}" → ${owner.name}`);
+      });
+
+      cell.appendChild(pm);
     });
-    pm.addEventListener('dragend',()=>{ pm.classList.remove('dragging'); activeDragPieceId=null; });
-
-    // DROP: item onto piece — stopPropagation so cell dragover doesn't interfere
-    pm.addEventListener('dragover',e=>{
-      if(dragItemName){ e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect='copy'; pm.classList.add('item-target'); }
-    });
-    pm.addEventListener('dragleave',e=>{ if(!pm.contains(e.relatedTarget))pm.classList.remove('item-target'); });
-    pm.addEventListener('drop',e=>{
-      e.preventDefault(); e.stopPropagation(); pm.classList.remove('item-target');
-      const itemName=e.dataTransfer.getData('itemName')||dragItemName; if(!itemName)return;
-      const owner=GS.players.find(p=>p.pieceId===piece.id);
-      if(!owner){toast('No player owns this piece','error');return;}
-      sendToHost({type:'GIVE_ITEM',toPlayerId:owner.id,itemName});
-      toast(`"${itemName}" → ${owner.name}`);
-    });
-
-    cell.appendChild(pm);
   });
 }
 
@@ -1329,17 +1437,42 @@ function showDieResult(sides,result){
 // ── Players ──
 function renderPLayerList(){
   const el=document.getElementById('player-list-items'); el.innerHTML='';
-  (GS.players||[]).forEach((p,i)=>{
+  // In GM mode, hide the virtual piece-players (they're just there for ownership tracking)
+  const visible=(GS.players||[]).filter(p=>!p.isVirtual);
+  visible.forEach((p,visIdx)=>{
+    const i=GS.players.indexOf(p);
     const item=document.createElement('div'); item.className='player-item'+(i===GS.currentTurnIndex?' active-turn':'');
     const dot=document.createElement('span'); dot.className='player-dot'; dot.style.background=p.color; item.appendChild(dot);
     const pObj=CG.pieces?.find(x=>x.id===p.pieceId);
     if(pObj){const pi=document.createElement('span');if(pObj.iconData){const img=document.createElement('img');img.src=pObj.iconData;img.style.cssText='width:17px;height:17px;object-fit:contain';pi.appendChild(img);}else pi.textContent=pObj.icon||'♟';item.appendChild(pi);}
-    const nm=document.createElement('span'); nm.className='player-name-text'; nm.textContent=p.name+(p.id===myPId?' ★':''); item.appendChild(nm);
+    const nm=document.createElement('span'); nm.className='player-name-text';
+    let badges='';
+    if(p.isGM)badges+=' <span style="color:var(--gold2);font-size:0.7rem" title="Game Master">👑</span>';
+    if(p.id===myPId)badges+=' ★';
+    nm.innerHTML=esc(p.name)+badges;
+    item.appendChild(nm);
     if(i===GS.currentTurnIndex){const ar=document.createElement('span');ar.style.cssText='color:var(--gold);font-size:0.7rem';ar.textContent='▶';item.appendChild(ar);}
     const items=p.items||[];
     if(items.length){const irow=document.createElement('div');irow.className='player-items-row';irow.textContent='🎒 '+items.join(', ');item.appendChild(irow);}
     el.appendChild(item);
   });
+  // In GM mode, also show a "Pieces" header listing all the pieces
+  if(isGM){
+    const sep=document.createElement('div');
+    sep.style.cssText='font-family:Cinzel Decorative,serif;font-size:0.68rem;color:var(--gold);margin:0.6rem 0 0.4rem;letter-spacing:0.1em;border-top:1px solid var(--border);padding-top:0.5rem';
+    sep.textContent='♟ PIECES';
+    el.appendChild(sep);
+    GS.players.filter(p=>p.isVirtual).forEach(p=>{
+      const item=document.createElement('div');item.className='player-item';
+      const dot=document.createElement('span');dot.className='player-dot';dot.style.background=p.color;item.appendChild(dot);
+      const pObj=CG.pieces?.find(x=>x.id===p.pieceId);
+      if(pObj){const pi=document.createElement('span');if(pObj.iconData){const img=document.createElement('img');img.src=pObj.iconData;img.style.cssText='width:16px;height:16px;object-fit:contain';pi.appendChild(img);}else pi.textContent=pObj.icon||'♟';item.appendChild(pi);}
+      const nm=document.createElement('span');nm.className='player-name-text';nm.style.fontSize='0.78rem';nm.textContent=p.name;item.appendChild(nm);
+      const items=p.items||[];
+      if(items.length){const irow=document.createElement('div');irow.className='player-items-row';irow.textContent='🎒 '+items.join(', ');item.appendChild(irow);}
+      el.appendChild(item);
+    });
+  }
   const cur=GS.players?.[GS.currentTurnIndex];
   document.getElementById('cur-turn').textContent=cur?.name||'—';
 }
@@ -1379,9 +1512,9 @@ function leaveGame(){
   conns.forEach(c=>{try{c.close();}catch{}});
   if(hostConn){try{hostConn.close();}catch{}}
   if(peer&&!peer.destroyed){try{peer.destroy();}catch{}} peer=null;myPeerId=null;
-  conns=[];hostConn=null;CG=null;isHost=false;myPId=null;
+  conns=[];hostConn=null;CG=null;isHost=false;isGM=false;myPId=null;
   document.getElementById('play-tab-btn').style.display='none';
-  switchTab('browse'); toast('Left the game');
+  switchTab('browse'); setConnStatus(); toast('Left the game');
 }
 
 // ══════════════════════════════════════════════
