@@ -6,11 +6,6 @@ A fully browser-based board game creation and multiplayer hosting platform. Desi
 
 ---
 
-## 🌐 Live Demo
-
-Deploy to GitHub Pages and share the link. See [Deployment](#-deployment) below.
-
----
 
 ## ✨ Features
 
@@ -57,32 +52,6 @@ Deploy to GitHub Pages and share the link. See [Deployment](#-deployment) below.
 - **Lobby system** — players choose their piece before the game starts
 - **Disconnect handling** — players are removed gracefully if they disconnect
 - **Test Mode** — creators can test their game solo without needing other players
-
----
-
-## 🚀 Deployment
-
-This is a single-file application. The entire engine lives in `index.html`.
-
-### GitHub Pages (Recommended)
-
-1. Create a new GitHub repository
-2. Upload `index.html` (and this `README.md`) to the root of the repo
-3. Go to **Settings → Pages**
-4. Under **Source**, select `Deploy from a branch` → `main` → `/ (root)`
-5. Click **Save**
-6. Your site will be live at `https://yourusername.github.io/your-repo-name`
-
-> ⚠️ GitHub Pages requires the repo to be **public** for free accounts, or you need GitHub Pro for private repo pages.
-
-### Other Hosts
-
-Since everything is one file, you can also host it on:
-- **Netlify** — drag and drop `index.html` into the Netlify dashboard
-- **Vercel** — deploy as a static site
-- **Any web server** — just serve `index.html` over HTTPS
-
-> **HTTPS is required** for multiplayer. PeerJS will not establish peer connections over plain HTTP.
 
 ---
 
